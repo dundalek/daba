@@ -1,3 +1,5 @@
+.clj-kondo
 .cpcache
+.env
 .nrepl-port
 tmp

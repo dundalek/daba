@@ -13,15 +13,29 @@
     (deps/add-libs
      '{org.xerial/sqlite-jdbc {:mvn/version "3.43.0.0"}})))
 
+(def !ensure-postresql-jdbc
+  (delay
+    (deps/add-libs
+     '{org.postgresql/postgresql {:mvn/version "42.7.3"}})))
+
 (defn inspect [db-spec]
-  @!ensure-next-jdbc
-  (when (and (string? db-spec)
-             (str/starts-with? db-spec "jdbc:sqlite:"))
-    @!ensure-sqlite-jdbc)
-  ((requiring-resolve 'daba.internal/inspect) db-spec))
+  (let [db-spec (if (and (string? db-spec) (not (str/starts-with? db-spec "jdbc:")))
+                  (str "jdbc:" db-spec)
+                  db-spec)
+        postgres? (and (string? db-spec) (str/starts-with? db-spec "jdbc:postgresql:"))]
+    @!ensure-next-jdbc
+    (when (and (string? db-spec) (str/starts-with? db-spec "jdbc:sqlite:"))
+      @!ensure-sqlite-jdbc)
+    (when postgres?
+      @!ensure-postresql-jdbc)
+    (if postgres?
+      ((requiring-resolve 'daba.internal/inspect-postgres) db-spec)
+      ((requiring-resolve 'daba.internal/inspect) db-spec))))
 
 (comment
   (inspect "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
+
+  (inspect (System/getenv "POSTGRES_URI"))
 
   (require '[portal.api :as p])
 
