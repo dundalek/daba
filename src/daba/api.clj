@@ -21,16 +21,13 @@
 (defn inspect [db-spec]
   (let [db-spec (if (and (string? db-spec) (not (str/starts-with? db-spec "jdbc:")))
                   (str "jdbc:" db-spec)
-                  db-spec)
-        postgres? (and (string? db-spec) (str/starts-with? db-spec "jdbc:postgresql:"))]
+                  db-spec)]
     @!ensure-next-jdbc
     (when (and (string? db-spec) (str/starts-with? db-spec "jdbc:sqlite:"))
       @!ensure-sqlite-jdbc)
-    (when postgres?
+    (when (and (string? db-spec) (str/starts-with? db-spec "jdbc:postgresql:"))
       @!ensure-postresql-jdbc)
-    (if postgres?
-      ((requiring-resolve 'daba.internal/inspect-postgres) db-spec)
-      ((requiring-resolve 'daba.internal/inspect) db-spec))))
+    ((requiring-resolve 'daba.internal/inspect-database) db-spec)))
 
 (comment
   (inspect "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")

@@ -1,6 +1,5 @@
 (ns daba.internal
   (:require
-   [clojure.datafy :as d :refer [datafy]]
    [next.jdbc :as jdbc]
    [next.jdbc.datafy]
    [next.jdbc.result-set :as result-set]
@@ -28,31 +27,27 @@
        (inspector-seq-viewer
         {:portal.viewer/default :portal.viewer/table})))
 
-(defn inspect-tables [ds]
-  (with-open [con (jdbc/get-connection ds)]
-    (let [table-name nil ;"Customer"
-          dbmeta (.getMetaData con)
-          table-list (->> (.getColumns dbmeta nil nil table-name nil)
-                          result-set/datafiable-result-set
-                          (group-by :TABLE_NAME)
-                          (sort-by key)
-                          (map (fn [[table-name columns]]
-                                 (with-meta
-                                   {:aname table-name
-                                    :columns (count columns)}
-                                   {`clojure.core.protocols/nav
-                                    (fn [_coll key _value]
-                                      (case key
-                                        :columns columns
-                                        :aname (query-table-data ds table-name)
-                                        nil))}))))]
-      (p/submit (with-meta table-list {:portal.viewer/default :portal.viewer/table})))))
+#_(defn inspect-tables [ds]
+    (with-open [con (jdbc/get-connection ds)]
+      (let [table-name nil ;"Customer"
+            dbmeta (.getMetaData con)
+            table-list (->> (.getColumns dbmeta nil nil table-name nil)
+                            result-set/datafiable-result-set
+                            (group-by :TABLE_NAME)
+                            (sort-by key)
+                            (map (fn [[table-name columns]]
+                                   (with-meta
+                                     {:aname table-name
+                                      :columns (count columns)}
+                                     {`clojure.core.protocols/nav
+                                      (fn [_coll key _value]
+                                        (case key
+                                          :columns columns
+                                          :aname (query-table-data ds table-name)
+                                          nil))}))))]
+        (p/submit (with-meta table-list {:portal.viewer/default :portal.viewer/table})))))
 
-(defn inspect [db-spec]
-  (let [ds (jdbc/get-datasource db-spec)]
-    (inspect-tables ds)))
-
-(defn inspect-postgres-schema [ds columns]
+(defn inspect-schema [ds columns]
   (let [grouped (->> columns
                      (group-by :TABLE_NAME))]
     (inspector-viewer
@@ -66,30 +61,35 @@
         (fn [_coll key [_ value]]
           (query-table-data ds value))}))))
 
-(defn inspect-postgres-schemas [ds columns]
+(defn inspect-schemas [ds columns]
   (let [grouped (->> columns
                      (group-by :TABLE_SCHEM))]
-    (with-meta
-      (->> grouped
-           keys
-           sort
-           (map (fn [schema]
-                  (v/hiccup [:div schema]))))
-      {`clojure.core.protocols/nav
-       (fn [_coll _key [_ value]]
-         (inspect-postgres-schema ds (get grouped value)))})))
+    (if (and (= (count grouped) 1)
+             (nil? (first (keys grouped))))
+      ;; no schemas, e.g. sqlite
+      (inspect-schema ds columns)
+      ;; schemas, e.g. postgres, duckdb
+      (with-meta
+        (->> grouped
+             keys
+             sort
+             (map (fn [schema]
+                    (v/hiccup [:div schema]))))
+        {`clojure.core.protocols/nav
+         (fn [_coll _key [_ value]]
+           (inspect-schema ds (get grouped value)))}))))
 
-(defn inspect-postgres [db-spec]
+(defn inspect-database [db-spec]
   (p/submit
    (let [ds (jdbc/get-datasource db-spec)]
      (with-open [con (jdbc/get-connection ds)]
        (let [dbmeta (.getMetaData con)
              columns (->> (.getColumns dbmeta nil nil nil nil)
                           result-set/datafiable-result-set)]
-         (inspect-postgres-schemas ds columns))))))
+         (inspect-schemas ds columns))))))
 
 (comment
-  (inspect-postgres-schemas ds columns)
+  (p/submit (inspect-schemas ds columns))
 
   (tap> [(v/hiccup [:div "Hello"])
          (v/hiccup [:div "world"])])
@@ -100,24 +100,21 @@
   (def db-spec
     (str "jdbc:" (System/getenv "POSTGRES_URI")))
 
-  (inspect db-spec)
-
   (def ds (jdbc/get-datasource db-spec))
-
   (def con (jdbc/get-connection ds))
 
   (jdbc/execute! ds ["select * from Artist limit 10"])
 
-  (bean ds)
+  (def db-spec "jdbc:duckdb:") ; in-memory
+  (def db-spec "jdbc:duckdb:tmp/duck-data") ; on disk
 
-  (tap> (datafy (:metaData (datafy con))))
+  (jdbc/execute! ds ["SELECT * FROM read_csv('tmp/githut-csv/gh-push-event.json.csv') limit 10;"])
+  (jdbc/execute! ds ["CREATE TABLE pushes AS SELECT * FROM read_csv('tmp/githut-csv/gh-push-event.json.csv');"])
+  (jdbc/execute! ds ["select * from pushes limit 10"])
+  (jdbc/execute! ds ["show tables"])
+  (jdbc/execute! ds ["describe pushes"])
 
-  (let [mdata (.getMetaData con)
-        #_(-> con
-              datafy
-              :metaData)]
-    ; (.getTables mdata)
-    ; (nav con :metaData mdata))
+  (let [mdata (.getMetaData con)]
     (def tables
       (->> (.getTables mdata nil nil nil nil)
            (result-set/datafiable-result-set))))
@@ -129,6 +126,9 @@
   (->> tables
        (map :TABLE_TYPE)
        frequencies)
+
+  (->> tables
+       count)
 
   ; :pg_class/TABLE_NAME "playing_with_neon",
   (->> tables
@@ -150,4 +150,8 @@
   ; :TABLE_SCHEM
   ; {"information_schema" 697, "pg_catalog" 1358, "public" 3}
   (->> columns
-       (filter (comp #{"public"} :TABLE_SCHEM))))
+       (filter (comp #{"public"} :TABLE_SCHEM)))
+
+  (->> columns
+       (group-by :TABLE_SCHEM)
+       keys))
