@@ -42,6 +42,8 @@
     (dispatch [::event/source-added dsid source])
     (dispatch [::event/database-inspected dsid])))
 
+(p/register! #'dispatch)
+
 (comment
   (def db-spec "jdbc:duckdb:tmp/duck-data") ; on disk
   (def ds (jdbc/get-datasource db-spec))

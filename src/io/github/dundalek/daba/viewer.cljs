@@ -3,20 +3,29 @@
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [io.github.dundalek.daba.app.state :as-alias state]
+   [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app :as-alias app]
-   [portal.viewer :as-alias pv]))
+   [portal.viewer :as-alias pv]
+   [portal.ui.rpc :as rpc]))
+
+(defn dispatch [event]
+  (rpc/call `app/dispatch event))
 
 (defn action-row-component [value]
-  (let [{:keys [row-meta]} (::action-row (meta value))]
+  (let [{::keys [action-row dsid]} (meta value)
+        {:keys [value-meta]} action-row]
     [:div {:style {:display "flex"
                    :flex-direction "row"
                    :align-items "flex-start"}}
-     [ins/inspector (with-meta value row-meta)]
+     [ins/inspector (with-meta value value-meta)]
      [:div {:style {:display "flex"
                     :gap 6}}
-      ; [:span "value:" (pr-str value)]
       ; [:button "data"]
-      [:button "tables"]]]))
+      [:button
+       {:on-click (fn [ev]
+                    (.stopPropagation ev)
+                    (dispatch [::event/tables-inspected dsid (:table-schem value)]))}
+       "tables"]]]))
 
 (defn name-label-predicate [value]
   (::name-label-fn (meta value)))
@@ -26,13 +35,15 @@
     [:div (label-fn value)]))
 
 (defn schema-list-component [value]
-  [ins/inspector
-   (->> value
-        (map (fn [item]
-               (with-meta item
-                 {::pv/default ::action-row
-                  ::action-row {:row-meta {::pv/default ::name-label
-                                           ::name-label-fn :table-schem}}}))))])
+  (let [{::state/keys [dsid]} (meta value)]
+    [ins/inspector
+     (->> value
+          (map (fn [item]
+                 (with-meta item
+                   {::pv/default ::action-row
+                    ::action-row {:value-meta {::pv/default ::name-label
+                                               ::name-label-fn :table-schem}}
+                    ::dsid dsid}))))]))
 
 (defn table-list-component [value]
   [ins/inspector (with-meta value
