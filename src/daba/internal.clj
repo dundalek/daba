@@ -22,10 +22,11 @@
 
 (defn query-table-data [ds table-name]
   ;; TODO: escape table-name
-  (->> (jdbc/execute! ds [(str "select * from " table-name)])
-       (take 10)
+  (->> (with-meta
+         (jdbc/execute! ds [(str "select * from " table-name)])
+         {:daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/table}}})
        (inspector-seq-viewer
-        {:portal.viewer/default :portal.viewer/table})))
+        {:portal.viewer/default :daba.viewer/paginator})))
 
 #_(defn inspect-tables [ds]
     (with-open [con (jdbc/get-connection ds)]
@@ -90,6 +91,8 @@
 
 (comment
   (p/submit (inspect-schemas ds columns))
+
+  (inspect-database db-spec)
 
   (tap> [(v/hiccup [:div "Hello"])
          (v/hiccup [:div "world"])])

@@ -1,7 +1,8 @@
 (ns daba.api
   (:require
    [clojure.repl.deps :as deps]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [portal.api :as p]))
 
 (def !ensure-next-jdbc
   (delay
@@ -29,6 +30,9 @@
       @!ensure-postresql-jdbc)
     ((requiring-resolve 'daba.internal/inspect-database) db-spec)))
 
+(defn on-load []
+  (p/eval-str (slurp "examples/portal-present/src/portal_present/viewer.cljs")))
+
 (comment
   (inspect "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
 
@@ -45,4 +49,18 @@
   (tap> :hello)
   (prn @p)
 
-  (p/docs))
+  (p/docs)
+
+  (p/open {:mode :dev
+           :on-load on-load})
+  (add-tap p/submit)
+
+  (p/eval-str (slurp "src/daba/viewer.cljs"))
+
+  (tap>
+   (with-meta
+     (->> (range 100)
+          (map  #(str "Slide " %)))
+     {:portal.viewer/default :daba.viewer/paginator
+      :daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/tree}
+                              :page-size 5}})))
