@@ -60,4 +60,7 @@
                 ::state/sources
                 first
                 key))
+
+  (dispatch [::event/database-inspected dsid "main"])
+
   (dispatch [::event/tables-inspected dsid "main"]))
