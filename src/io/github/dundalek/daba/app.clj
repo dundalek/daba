@@ -8,11 +8,13 @@
 
 (defonce !app-db (atom state/default-state))
 
+(def effects
+  {::fx/inspect-database fx/inspect-database
+   ::fx/inspect-tables fx/inspect-tables
+   ::fx/inspect-columns fx/inspect-columns})
+
 (defn fx! [[fx-name arg]]
-  (let [fx-handler (case fx-name
-                     ::fx/inspect-database fx/inspect-database
-                     ::fx/inspect-tables fx/inspect-tables
-                     ::fx/inspect-columns fx/inspect-columns)]
+  (let [fx-handler (get effects fx-name)]
     (fx-handler arg)))
 
 (defn db-handle! [handler]
@@ -26,12 +28,14 @@
         (reset! !app-db db))
       (run! fx! fx))))
 
+(def events
+  {::event/source-added (db-handle! event/source-added)
+   ::event/database-inspected (fx-handle! event/database-inspected)
+   ::event/tables-inspected (fx-handle! event/tables-inspected)
+   ::event/columns-inspected (fx-handle! event/columns-inspected)})
+
 (defn dispatch [[event-name :as event]]
-  (let [handler (case event-name
-                  ::event/source-added (db-handle! event/source-added)
-                  ::event/database-inspected (fx-handle! event/database-inspected)
-                  ::event/tables-inspected (fx-handle! event/tables-inspected)
-                  ::event/columns-inspected (fx-handle! event/columns-inspected))]
+  (let [handler (get events event-name)]
     (handler event)
     nil))
 
@@ -48,6 +52,7 @@
 
 (comment
   (def db-spec "jdbc:duckdb:tmp/duck-data") ; on disk
+  (def db-spec "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def ds (jdbc/get-datasource db-spec))
 
   (p/eval-str (slurp "src/io/github/dundalek/daba/viewer.cljs"))
