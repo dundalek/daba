@@ -89,6 +89,9 @@
                           result-set/datafiable-result-set)]
          (inspect-schemas ds columns))))))
 
+(defn metadata-result-set [rs]
+  (result-set/datafiable-result-set rs {:builder-fn result-set/as-unqualified-kebab-maps}))
+
 (comment
   (defn on-query [query]
     (p/submit
@@ -126,14 +129,29 @@
   (jdbc/execute! ds ["show tables"])
   (jdbc/execute! ds ["describe pushes"])
 
-  (let [mdata (.getMetaData con)]
-    (def tables
-      (->> (.getTables mdata nil nil nil nil)
-           (result-set/datafiable-result-set))))
-           ; (filter (comp #{"TABLE"} :TABLE_TYPE)) ; there is also "SYSTEM TABLE"
-           ; (map :sqlite_master/TABLE_NAME)))
-           ; (map :TABLE_TYPE)
-           ; frequencies))
+  (with-open [con (.getConnection ds)]
+    (->> (.getCatalogs (.getMetaData con))
+         (metadata-result-set)))
+
+  (with-open [con (.getConnection ds)]
+    (->> (.getSchemas (.getMetaData con))
+         (metadata-result-set)))
+
+  (with-open [con (.getConnection ds)]
+    (->> (.getTables (.getMetaData con) nil nil nil nil)
+         (metadata-result-set)
+         (map :table-type)
+         frequencies))
+
+  (with-open [con (.getConnection ds)]
+    (->> (.getTables (.getMetaData con) nil "public" nil (into-array ["TABLE"]))
+         (metadata-result-set)
+         (take 10)))
+
+  (with-open [con (.getConnection ds)]
+    (->> (.getColumns (.getMetaData con) nil "public" nil nil)
+         (metadata-result-set)
+         (take 10)))
 
   (->> tables
        (map :TABLE_TYPE)
