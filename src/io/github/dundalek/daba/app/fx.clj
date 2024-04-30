@@ -2,39 +2,13 @@
   (:require
    [io.github.dundalek.daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.state :as state]
-   [next.jdbc :as jdbc]
-   [next.jdbc.datafy]
-   [next.jdbc.result-set :as result-set]
    [portal.api :as p]
-   [portal.viewer :as pv]))
-
-(defn metadata-result-set [rs]
-  (result-set/datafiable-result-set rs {:builder-fn result-set/as-unqualified-kebab-maps}))
-
-(defn get-tables [ds schema-name]
-  (with-open [con (jdbc/get-connection ds)]
-    (-> (.getMetaData con)
-        (.getTables nil schema-name nil nil)
-        (metadata-result-set))))
-
-(defn get-schemas [ds]
-  (with-open [con (jdbc/get-connection ds)]
-    (->> (-> (.getMetaData con)
-             (.getSchemas)
-             (metadata-result-set))
-         (map #(select-keys % [:table-schem]))
-         (distinct)
-         (sort-by :table-schem))))
-
-(defn get-columns [ds table-name]
-  (with-open [con (jdbc/get-connection ds)]
-    (-> (.getMetaData con)
-        (.getColumns nil nil table-name nil)
-        (metadata-result-set))))
+   [portal.viewer :as pv]
+   [io.github.dundalek.daba.internal.jdbc :as dbc]))
 
 (defn inspect-columns [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source
-        columns (get-columns ds table-name)]
+        columns (dbc/get-columns ds table-name)]
     (p/submit
      (-> columns
          (pv/default ::dv/column-list)
@@ -42,7 +16,7 @@
 
 (defn inspect-tables [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source
-        tables (get-tables ds schema-name)]
+        tables (dbc/get-tables ds schema-name)]
     (p/submit
      (-> tables
          (pv/default ::dv/table-list)
@@ -50,7 +24,7 @@
 
 (defn inspect-database [source]
   (let [{::state/keys [ds dsid]} source
-        schemas (get-schemas ds)]
+        schemas (dbc/get-schemas ds)]
     (if (seq schemas)
       (p/submit
        (-> schemas

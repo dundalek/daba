@@ -4,7 +4,8 @@
    [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
    [next.jdbc :as jdbc]
-   [portal.api :as p]))
+   [portal.api :as p]
+   [io.github.dundalek.daba.internal.jdbc :as dbc]))
 
 (defonce !app-db (atom state/default-state))
 
@@ -59,9 +60,9 @@
 
   (inspect-database! db-spec)
 
-  (fx/get-schemas ds)
+  (dbc/get-schemas ds)
 
-  (fx/get-tables ds "main")
+  (dbc/get-tables ds "main")
 
   (reset! !app-db state/default-state)
   @!app-db
@@ -76,5 +77,5 @@
 
   (dispatch [::event/columns-inspected dsid "pushes"])
 
-  (->> (fx/get-columns ds "pushes")
+  (->> (dbc/get-columns ds "pushes")
        count))
