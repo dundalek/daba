@@ -12,7 +12,7 @@
     (p/submit
      (-> columns
          (pv/default ::dv/column-list)
-         (vary-meta assoc ::state/dsid dsid)))))
+         (vary-meta assoc ::dv/dsid dsid)))))
 
 (defn inspect-tables [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source
@@ -20,7 +20,7 @@
     (p/submit
      (-> tables
          (pv/default ::dv/table-list)
-         (vary-meta assoc ::state/dsid dsid)))))
+         (vary-meta assoc ::dv/dsid dsid)))))
 
 (defn inspect-database [source]
   (let [{::state/keys [ds dsid]} source
@@ -29,6 +29,6 @@
       (p/submit
        (-> schemas
            (pv/default ::dv/schema-list)
-           (vary-meta assoc ::state/dsid dsid)))
+           (vary-meta assoc ::dv/dsid dsid)))
       (inspect-tables {:source source
                        :schema-name nil}))))

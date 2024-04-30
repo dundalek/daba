@@ -78,4 +78,6 @@
   (dispatch [::event/columns-inspected dsid "pushes"])
 
   (->> (dbc/get-columns ds "pushes")
-       count))
+       count)
+
+  (p/docs))

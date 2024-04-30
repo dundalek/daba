@@ -1,12 +1,11 @@
 (ns io.github.dundalek.daba.viewer
   (:require
+   [io.github.dundalek.daba.app :as-alias app]
+   [io.github.dundalek.daba.app.event :as-alias event]
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
-   [io.github.dundalek.daba.app.state :as-alias state]
-   [io.github.dundalek.daba.app.event :as-alias event]
-   [io.github.dundalek.daba.app :as-alias app]
-   [portal.viewer :as-alias pv]
-   [portal.ui.rpc :as rpc]))
+   [portal.ui.rpc :as rpc]
+   [portal.viewer :as-alias pv]))
 
 (defn dispatch [event]
   (rpc/call `app/dispatch event))
@@ -38,7 +37,7 @@
       "tables"]]))
 
 (defn schema-list-component [value]
-  (let [{::state/keys [dsid]} (meta value)]
+  (let [{::keys [dsid]} (meta value)]
     [ins/inspector
      (->> value
           (map (fn [item]
@@ -60,7 +59,7 @@
       "columns"]]))
 
 (defn table-list-component [value]
-  (let [{::state/keys [dsid]} (meta value)]
+  (let [{::keys [dsid]} (meta value)]
     [ins/inspector
      (->> value
           (map (fn [item]
@@ -71,7 +70,7 @@
                                   :action-bar [table-list-actions {:table item :dsid dsid}]}}))))]))
 
 (defn column-list-component [value]
-  (let [{::state/keys [dsid]} (meta value)]
+  (let [{::keys [dsid]} (meta value)]
     [ins/inspector
      (->> value
           (map (fn [item]
