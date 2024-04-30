@@ -11,7 +11,8 @@
 (defn fx! [[fx-name arg]]
   (let [fx-handler (case fx-name
                      ::fx/inspect-database fx/inspect-database
-                     ::fx/inspect-tables fx/inspect-tables)]
+                     ::fx/inspect-tables fx/inspect-tables
+                     ::fx/inspect-columns fx/inspect-columns)]
     (fx-handler arg)))
 
 (defn db-handle! [handler]
@@ -29,7 +30,8 @@
   (let [handler (case event-name
                   ::event/source-added (db-handle! event/source-added)
                   ::event/database-inspected (fx-handle! event/database-inspected)
-                  ::event/tables-inspected (fx-handle! event/tables-inspected))]
+                  ::event/tables-inspected (fx-handle! event/tables-inspected)
+                  ::event/columns-inspected (fx-handle! event/columns-inspected))]
     (handler event)
     nil))
 
@@ -63,6 +65,11 @@
                 first
                 key))
 
-  (dispatch [::event/database-inspected dsid "main"])
+  (dispatch [::event/database-inspected dsid])
 
-  (dispatch [::event/tables-inspected dsid "main"]))
+  (dispatch [::event/tables-inspected dsid "main"])
+
+  (dispatch [::event/columns-inspected dsid "pushes"])
+
+  (->> (fx/get-columns ds "pushes")
+       count))

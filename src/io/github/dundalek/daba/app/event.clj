@@ -14,3 +14,8 @@
   (let [source (get-in db [::state/sources dsid])]
     {:fx [[::fx/inspect-tables {:source source
                                 :schema-name schema-name}]]}))
+
+(defn columns-inspected [{:keys [db]} [_ dsid table-name]]
+  (let [source (get-in db [::state/sources dsid])]
+    {:fx [[::fx/inspect-columns {:source source
+                                 :table-name table-name}]]}))

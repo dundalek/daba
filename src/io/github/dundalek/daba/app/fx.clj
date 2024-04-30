@@ -26,6 +26,20 @@
          (distinct)
          (sort-by :table-schem))))
 
+(defn get-columns [ds table-name]
+  (with-open [con (jdbc/get-connection ds)]
+    (-> (.getMetaData con)
+        (.getColumns nil nil table-name nil)
+        (metadata-result-set))))
+
+(defn inspect-columns [{:keys [source table-name]}]
+  (let [{::state/keys [ds dsid]} source
+        columns (get-columns ds table-name)]
+    (p/submit
+     (-> columns
+         (pv/default ::dv/column-list)
+         (vary-meta assoc ::state/dsid dsid)))))
+
 (defn inspect-tables [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source
         tables (get-tables ds schema-name)]
