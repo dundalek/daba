@@ -48,3 +48,44 @@
  {:name ::query-input
   :predicate (constantly true)
   :component query-input})
+
+(defn hello [value]
+  [:div {:style {:display "flex"
+                 :gap 12}}
+   [:span "value:" (pr-str value)]
+   [:button "data"]
+   [:button "columns"]])
+
+(p/register-viewer!
+ {:name ::hello
+  :predicate (constantly true)
+  :component hello})
+
+(defn action-row [value]
+  (let [{:keys [row-meta]} (::action-row (meta value))]
+    [:div {:style {:display "flex"
+                   :flex-direction "row"
+                   :align-items "flex-start"}}
+     [ins/inspector (with-meta value row-meta)]
+     [:div {:style {:display "flex"
+                    :gap 6}}
+      ; [:span "value:" (pr-str value)]
+      [:button "data"]
+      [:button "columns"]]]))
+
+(p/register-viewer!
+ {:name ::action-row
+  :predicate (constantly true)
+  :component action-row})
+
+(defn name-label-predicate [value]
+  (and (map? value)
+       (string? (:name value))))
+
+(defn name-label [{:keys [name]}]
+  [:div name])
+
+(p/register-viewer!
+ {:name ::name-label
+  :predicate name-label-predicate
+  :component name-label})

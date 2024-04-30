@@ -4,15 +4,15 @@
    [next.jdbc.datafy]
    [next.jdbc.result-set :as result-set]
    [portal.api :as p]
-   [portal.viewer :as v]))
+   [portal.viewer :as pv]))
 
 (defn inspector-viewer
   ;; Specifying default viewer with metadata did not seem to work reliably, perhaps due to equality not considering metadata?
   ;; As a workaround always wrapping in a hiccup viewer seems to work better.
   ([value] (inspector-viewer value {}))
   ([value opts]
-   (v/hiccup
-    [::v/inspector
+   (pv/hiccup
+    [::pv/inspector
      opts
      value])))
 
@@ -57,7 +57,7 @@
             keys
             sort
             (map (fn [aname]
-                   (v/hiccup [:div aname]))))
+                   (pv/hiccup [:div aname]))))
        {`clojure.core.protocols/nav
         (fn [_coll key [_ value]]
           (query-table-data ds value))}))))
@@ -75,7 +75,7 @@
              keys
              sort
              (map (fn [schema]
-                    (v/hiccup [:div schema]))))
+                    (pv/hiccup [:div schema]))))
         {`clojure.core.protocols/nav
          (fn [_coll _key [_ value]]
            (inspect-schema ds (get grouped value)))}))))
@@ -89,22 +89,22 @@
                           result-set/datafiable-result-set)]
          (inspect-schemas ds columns))))))
 
-(defn on-query [query]
-  (p/submit
-   ; {:query query}
-   (->> (with-meta
-          (jdbc/execute! ds [query])
-          {:daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/table}}})
-        (inspector-seq-viewer
-         {:portal.viewer/default :daba.viewer/paginator}))))
-
 (comment
+  (defn on-query [query]
+    (p/submit
+     ; {:query query}
+     (->> (with-meta
+            (jdbc/execute! ds [query])
+            {:daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/table}}})
+          (inspector-seq-viewer
+           {:portal.viewer/default :daba.viewer/paginator}))))
+
   (p/submit (inspect-schemas ds columns))
 
   (inspect-database db-spec)
 
-  (tap> [(v/hiccup [:div "Hello"])
-         (v/hiccup [:div "world"])])
+  (tap> [(pv/hiccup [:div "Hello"])
+         (pv/hiccup [:div "world"])])
 
   (def db-spec
     "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
@@ -187,4 +187,32 @@
      {}
      {:portal.viewer/default :daba.viewer/query-input}))
 
-  (p/register! #'on-query))
+  (p/register! #'on-query)
+
+  (defn row-meta [value]
+    (with-meta
+      value
+      {:portal.viewer/for {:columns :portal.viewer/pr-str}}))
+
+  (p/submit
+   (with-meta
+     (->> [{:name "foo"}
+           {:name "bar"}]
+          (map #(-> %
+                    (assoc ::actions (:name %))
+                    (with-meta {:portal.viewer/for {::actions :daba.viewer/hello}}))))
+     {:portal.viewer/default :portal.viewer/table
+      :portal.viewer/table {:columns [:name ::actions]}}))
+
+  (p/submit
+   (->> [{:name "foo"}
+         {:name "bar"}]
+        (map #(-> %
+                  (with-meta {::pv/default :daba.viewer/action-row
+                              :daba.viewer/action-row
+                              {:row-meta {::pv/default :daba.viewer/name-label}}})))))
+
+  (p/submit
+   (with-meta
+     (->> [{:name "foo"}
+           {:name "bar"}]))))
