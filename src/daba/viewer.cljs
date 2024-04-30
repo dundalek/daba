@@ -2,7 +2,8 @@
   (:require
    [portal.ui.inspector :as ins]
    [reagent.core :as r]
-   [portal.ui.api :as p]))
+   [portal.ui.api :as p]
+   [portal.ui.rpc :as rpc]))
 
 (def default-page-size 20)
 
@@ -33,3 +34,17 @@
  {:name ::paginator
   :predicate paginable?
   :component paginator})
+
+(defn query-input []
+  [:form {:on-submit (fn [ev]
+                       (.preventDefault ev)
+                       ;; do RPC here
+                       (let [query (-> ev .-target .-query .-value)]
+                         (rpc/call 'daba.internal/on-query query)))}
+   [:textarea {:name "query"}]
+   [:button {:type "submit"} "Submit"]])
+
+(p/register-viewer!
+ {:name ::query-input
+  :predicate (constantly true)
+  :component query-input})

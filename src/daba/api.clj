@@ -49,18 +49,6 @@
   (tap> :hello)
   (prn @p)
 
-  (p/docs)
+  (p/docs))
 
-  (p/open {:mode :dev
-           :on-load on-load})
-  (add-tap p/submit)
 
-  (p/eval-str (slurp "src/daba/viewer.cljs"))
-
-  (tap>
-   (with-meta
-     (->> (range 100)
-          (map  #(str "Slide " %)))
-     {:portal.viewer/default :daba.viewer/paginator
-      :daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/tree}
-                              :page-size 5}})))

@@ -89,6 +89,15 @@
                           result-set/datafiable-result-set)]
          (inspect-schemas ds columns))))))
 
+(defn on-query [query]
+  (p/submit
+   ; {:query query}
+   (->> (with-meta
+          (jdbc/execute! ds [query])
+          {:daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/table}}})
+        (inspector-seq-viewer
+         {:portal.viewer/default :daba.viewer/paginator}))))
+
 (comment
   (p/submit (inspect-schemas ds columns))
 
@@ -157,4 +166,25 @@
 
   (->> columns
        (group-by :TABLE_SCHEM)
-       keys))
+       keys)
+
+  (p/open {:mode :dev
+           :on-load on-load})
+  (add-tap p/submit)
+
+  (p/eval-str (slurp "src/daba/viewer.cljs"))
+
+  (tap>
+   (with-meta
+     (->> (range 100)
+          (map  #(str "Slide " %)))
+     {:portal.viewer/default :daba.viewer/paginator
+      :daba.viewer/paginator {:viewer {:portal.viewer/default :portal.viewer/tree}
+                              :page-size 5}}))
+
+  (tap>
+   (with-meta
+     {}
+     {:portal.viewer/default :daba.viewer/query-input}))
+
+  (p/register! #'on-query))
