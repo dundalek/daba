@@ -98,4 +98,12 @@
     group by Artist.ArtistId
     order by AlbumCount desc"]
 
-    ::pv/inspector)))
+    ::pv/inspector))
+
+  (dispatch [::event/query-executed dsid
+             "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount
+    from Artist
+    left join Album using (ArtistId)
+    group by Artist.ArtistId
+    order by AlbumCount desc"]))
+

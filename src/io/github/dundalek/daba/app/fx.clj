@@ -50,11 +50,13 @@
   (let [{::state/keys [ds dsid]} source
         results (if (str/blank? query)
                   []
-                  (jdbc/execute! ds [query]))]
+                  (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
+        {:keys [columns]} (meta results)]
     (p/submit
      (with-meta
        results
        {::pv/default ::dv/query-editor
+        ::pv/table {:columns columns}
         ::dv/query-editor {:query query}
         ::dv/dsid dsid}))))
 

@@ -24,7 +24,8 @@
             page-size (or page-size default-page-size)
             paginated (->> coll
                            (drop (* @page page-size))
-                           (take page-size))]
+                           (take page-size)
+                           vec)]
         [:<>
          [:div {:style {:display "flex"
                         :justify-content "center"
@@ -34,8 +35,9 @@
           [:span (inc @page)]
           [:button {:on-click #(swap! page inc)} (tr ["next"])]]
          [ins/inspector
-          viewer
-          paginated]]))))
+          (with-meta
+            paginated
+            viewer)]]))))
 
 (defn schema-list-actions [{:keys [dsid schema]}]
   (let [{:keys [table-schem]} schema]
@@ -122,7 +124,8 @@
         [::pv/inspector
          (with-meta results
            {::pv/default ::paginator
-            ::paginator {:viewer {::pv/default ::pv/table}}})])]]))
+            ::paginator {:viewer {::pv/default ::pv/table
+                                  ::pv/table (::pv/table (meta value))}}})])]]))
 
 (p/register-viewer!
  {:name ::paginator
