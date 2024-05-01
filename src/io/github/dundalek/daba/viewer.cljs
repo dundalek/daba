@@ -116,6 +116,7 @@
                            (let [query (-> ev .-target .-query .-value)]
                              (dispatch [::event/query-executed dsid query])))}
        ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
+       ;; https://github.com/djblue/portal/pull/224
        [:input {:name "query"
                 :type "text"
                 :default-value query}]
