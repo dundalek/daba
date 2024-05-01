@@ -8,6 +8,10 @@
    [portal.viewer :as-alias pv]
    [reagent.core :as r]))
 
+;; Inspired by and could later drop in https://github.com/taoensso/tempura
+(defn tr [[message]]
+  message)
+
 (defn dispatch [event]
   (rpc/call `app/dispatch event))
 
@@ -26,9 +30,9 @@
                         :justify-content "center"
                         :gap 12
                         :padding 6}}
-          [:button {:on-click (fn [] (swap! page #(max 0 (dec %))))} "prev"]
+          [:button {:on-click (fn [] (swap! page #(max 0 (dec %))))} (tr ["prev"])]
           [:span (inc @page)]
-          [:button {:on-click #(swap! page inc)} "next"]]
+          [:button {:on-click #(swap! page inc)} (tr ["next"])]]
          [ins/inspector
           viewer
           paginated]]))))
@@ -41,7 +45,7 @@
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch [::event/tables-inspected dsid table-schem]))}
-      "tables"]]))
+      (tr ["tables"])]]))
 
 (defn schema-list-component [value]
   (let [{::keys [dsid]} (meta value)]
@@ -64,12 +68,12 @@
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch [::event/table-data-inspected dsid table-name]))}
-      "data"]
+      (tr ["data"])]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch [::event/columns-inspected dsid table-name]))}
-      "columns"]]))
+      (tr ["columns"])]]))
 
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
