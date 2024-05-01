@@ -7,7 +7,8 @@
    [io.github.dundalek.daba.internal.miniframe :as mf]
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
-   [portal.api :as p]))
+   [portal.api :as p]
+   [portal.viewer :as pv]))
 
 (def fx
   {::fx/inspect-database fx/inspect-database
@@ -83,4 +84,18 @@
   (p/docs)
 
   (->> (sql/find-by-keys ds "Album" :all)
-       count))
+       count)
+
+  (tap>
+   (pv/default
+    ["select * from Artist limit 100"
+
+     "select count(*) from Artist"
+
+     "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount
+    from Artist
+    left join Album using (ArtistId)
+    group by Artist.ArtistId
+    order by AlbumCount desc"]
+
+    ::pv/inspector)))

@@ -101,8 +101,10 @@
          {::pv/default ::pv/hiccup}))]))
 
 (defn query-editor-component [value]
-  (let [{::keys [dsid query-editor]} (meta value)
-        {:keys [query]} query-editor]
+  (let [[query results] (if (string? value)
+                          [value nil]
+                          [(-> value meta ::query-editor :query) value])
+        {::keys [dsid]} (meta value)]
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
@@ -116,9 +118,9 @@
                 :type "text"
                 :default-value query}]
        [:button {:type "submit"} (tr ["execute"])]]
-      (when (seq value)
+      (when (seq results)
         [::pv/inspector
-         (with-meta value
+         (with-meta results
            {::pv/default ::paginator
             ::paginator {:viewer {::pv/default ::pv/table}}})])]]))
 
