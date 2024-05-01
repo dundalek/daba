@@ -51,7 +51,11 @@
   (let [{:keys [table-name]} table]
     [:div {:style {:display "flex"
                    :gap 6}}
-     [:button "data"]
+     [:button
+      {:on-click (fn [ev]
+                   (.stopPropagation ev)
+                   (dispatch [::event/table-data-inspected dsid table-name]))}
+      "data"]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)

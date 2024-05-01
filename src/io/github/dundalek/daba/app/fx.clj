@@ -1,10 +1,20 @@
 (ns io.github.dundalek.daba.app.fx
   (:require
-   [io.github.dundalek.daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.state :as state]
+   [io.github.dundalek.daba.internal.jdbc :as dbc]
+   [io.github.dundalek.daba.viewer :as-alias dv]
+   [next.jdbc.sql :as sql]
    [portal.api :as p]
-   [portal.viewer :as pv]
-   [io.github.dundalek.daba.internal.jdbc :as dbc]))
+   [portal.viewer :as pv]))
+
+(defn inspect-table-data [{:keys [source table-name]}]
+  (let [{::state/keys [ds dsid]} source
+        rows (->> (sql/find-by-keys ds table-name :all)
+                  (take 10))]
+    (p/submit
+     (-> rows
+         (pv/default ::pv/table)
+         (vary-meta assoc ::dv/dsid dsid)))))
 
 (defn inspect-columns [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source

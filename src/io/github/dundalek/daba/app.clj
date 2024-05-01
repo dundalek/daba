@@ -4,6 +4,7 @@
    [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
    [next.jdbc :as jdbc]
+   [next.jdbc.sql :as sql]
    [portal.api :as p]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [io.github.dundalek.daba.internal.miniframe :as mf]))
@@ -11,13 +12,15 @@
 (def fx
   {::fx/inspect-database fx/inspect-database
    ::fx/inspect-tables fx/inspect-tables
-   ::fx/inspect-columns fx/inspect-columns})
+   ::fx/inspect-columns fx/inspect-columns
+   ::fx/inspect-table-data fx/inspect-table-data})
 
 (def event
   {::event/source-added (mf/db-handler event/source-added)
    ::event/database-inspected (mf/fx-handler event/database-inspected)
    ::event/tables-inspected (mf/fx-handler event/tables-inspected)
-   ::event/columns-inspected (mf/fx-handler event/columns-inspected)})
+   ::event/columns-inspected (mf/fx-handler event/columns-inspected)
+   ::event/table-data-inspected (mf/fx-handler event/table-data-inspected)})
 
 (defonce !app-db (atom state/default-state))
 
@@ -69,4 +72,7 @@
   (->> (dbc/get-columns ds "pushes")
        count)
 
-  (p/docs))
+  (p/docs)
+
+  (->> (sql/find-by-keys ds "Album" :all)
+       count))
