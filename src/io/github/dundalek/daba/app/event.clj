@@ -24,3 +24,13 @@
   (let [source (get-in db [::state/sources dsid])]
     {:fx [[::fx/inspect-table-data {:source source
                                     :table-name table-name}]]}))
+
+(defn query-editor-opened [{:keys [db]} [_ dsid]]
+  (let [source (get-in db [::state/sources dsid])]
+    {:fx [[::fx/open-query-editor {:source source
+                                   :query ""}]]}))
+
+(defn query-executed [{:keys [db]} [_ dsid query]]
+  (let [source (get-in db [::state/sources dsid])]
+    {:fx [[::fx/open-query-editor {:source source
+                                   :query query}]]}))

@@ -3,24 +3,27 @@
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
+   [io.github.dundalek.daba.internal.jdbc :as dbc]
+   [io.github.dundalek.daba.internal.miniframe :as mf]
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
-   [portal.api :as p]
-   [io.github.dundalek.daba.internal.jdbc :as dbc]
-   [io.github.dundalek.daba.internal.miniframe :as mf]))
+   [portal.api :as p]))
 
 (def fx
   {::fx/inspect-database fx/inspect-database
    ::fx/inspect-tables fx/inspect-tables
    ::fx/inspect-columns fx/inspect-columns
-   ::fx/inspect-table-data fx/inspect-table-data})
+   ::fx/inspect-table-data fx/inspect-table-data
+   ::fx/open-query-editor fx/open-query-editor})
 
 (def event
   {::event/source-added (mf/db-handler event/source-added)
    ::event/database-inspected (mf/fx-handler event/database-inspected)
    ::event/tables-inspected (mf/fx-handler event/tables-inspected)
    ::event/columns-inspected (mf/fx-handler event/columns-inspected)
-   ::event/table-data-inspected (mf/fx-handler event/table-data-inspected)})
+   ::event/table-data-inspected (mf/fx-handler event/table-data-inspected)
+   ::event/query-editor-opened (mf/fx-handler event/query-editor-opened)
+   ::event/query-executed (mf/fx-handler event/query-executed)})
 
 (defonce !app-db (atom state/default-state))
 
@@ -68,6 +71,11 @@
   (dispatch [::event/tables-inspected dsid "main"])
 
   (dispatch [::event/columns-inspected dsid "pushes"])
+
+  (dispatch [::event/query-editor-opened dsid])
+
+  (dispatch [::event/query-executed dsid "select * from Artist limit 100"])
+  (dispatch [::event/query-executed dsid "select count(*) from Artist"])
 
   (->> (dbc/get-columns ds "pushes")
        count)

@@ -1,8 +1,10 @@
 (ns io.github.dundalek.daba.app.fx
   (:require
+   [clojure.string :as str]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [io.github.dundalek.daba.viewer :as-alias dv]
+   [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
    [portal.api :as p]
    [portal.viewer :as pv]))
@@ -43,3 +45,16 @@
            (vary-meta assoc ::dv/dsid dsid)))
       (inspect-tables {:source source
                        :schema-name nil}))))
+
+(defn open-query-editor [{:keys [source query]}]
+  (let [{::state/keys [ds dsid]} source
+        results (if (str/blank? query)
+                  []
+                  (jdbc/execute! ds [query]))]
+    (p/submit
+     (with-meta
+       results
+       {::pv/default ::dv/query-editor
+        ::dv/query-editor {:query query}
+        ::dv/dsid dsid}))))
+

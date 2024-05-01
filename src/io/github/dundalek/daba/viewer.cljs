@@ -100,6 +100,28 @@
            (:column-name item)]]
          {::pv/default ::pv/hiccup}))]))
 
+(defn query-editor-component [value]
+  (let [{::keys [dsid query-editor]} (meta value)
+        {:keys [query]} query-editor]
+    [ins/inspector
+     {::pv/default ::pv/hiccup}
+     [:div
+      [:form {:on-submit (fn [ev]
+                           (.preventDefault ev)
+                             ;; do RPC here
+                           (let [query (-> ev .-target .-query .-value)]
+                             (dispatch [::event/query-executed dsid query])))}
+       ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
+       [:input {:name "query"
+                :type "text"
+                :default-value query}]
+       [:button {:type "submit"} (tr ["execute"])]]
+      (when (seq value)
+        [::pv/inspector
+         (with-meta value
+           {::pv/default ::paginator
+            ::paginator {:viewer {::pv/default ::pv/table}}})])]]))
+
 (p/register-viewer!
  {:name ::paginator
   :predicate sequential?
@@ -119,3 +141,8 @@
  {:name ::column-list
   :predicate sequential?
   :component column-list-component})
+
+(p/register-viewer!
+ {:name ::query-editor
+  :predicate (constantly true)
+  :component query-editor-component})
