@@ -9,12 +9,13 @@
 
 (defn inspect-table-data [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source
-        rows (->> (sql/find-by-keys ds table-name :all)
-                  (take 10))]
+        rows (sql/find-by-keys ds table-name :all)]
     (p/submit
-     (-> rows
-         (pv/default ::pv/table)
-         (vary-meta assoc ::dv/dsid dsid)))))
+     (with-meta
+       rows
+       {::pv/default ::dv/paginator
+        ::dv/paginator {:viewer {::pv/default ::pv/table}}
+        ::dv/dsid dsid}))))
 
 (defn inspect-columns [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source

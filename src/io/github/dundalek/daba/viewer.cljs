@@ -5,10 +5,33 @@
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [portal.ui.rpc :as rpc]
-   [portal.viewer :as-alias pv]))
+   [portal.viewer :as-alias pv]
+   [reagent.core :as r]))
 
 (defn dispatch [event]
   (rpc/call `app/dispatch event))
+
+(def default-page-size 20)
+
+(defn paginator-component []
+  (let [page (r/atom 0)]
+    (fn [coll]
+      (let [{:keys [viewer page-size]} (::paginator (meta coll))
+            page-size (or page-size default-page-size)
+            paginated (->> coll
+                           (drop (* @page page-size))
+                           (take page-size))]
+        [:<>
+         [:div {:style {:display "flex"
+                        :justify-content "center"
+                        :gap 12
+                        :padding 6}}
+          [:button {:on-click (fn [] (swap! page #(max 0 (dec %))))} "prev"]
+          [:span (inc @page)]
+          [:button {:on-click #(swap! page inc)} "next"]]
+         [ins/inspector
+          viewer
+          paginated]]))))
 
 (defn action-row-component [value]
   (let [{::keys [action-row]} (meta value)
@@ -83,6 +106,11 @@
                     ::action-row {:value-meta {::pv/default ::name-label
                                                ::name-label-fn :column-name}}}))))]))
                                   ; :action-bar [table-list-actions {:table item :dsid dsid}]}}))))]))
+
+(p/register-viewer!
+ {:name ::paginator
+  :predicate sequential?
+  :component paginator-component})
 
 (p/register-viewer!
  {:name ::action-row
