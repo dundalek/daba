@@ -33,22 +33,6 @@
           viewer
           paginated]]))))
 
-(defn action-row-component [value]
-  (let [{::keys [action-row]} (meta value)
-        {:keys [value-meta action-bar]} action-row]
-    [:div {:style {:display "flex"
-                   :flex-direction "row"
-                   :align-items "flex-start"}}
-     [ins/inspector (with-meta value value-meta)]
-     action-bar]))
-
-(defn name-label-predicate [value]
-  (::name-label-fn (meta value)))
-
-(defn name-label [value]
-  (let [label-fn (::name-label-fn (meta value))]
-    [:div (label-fn value)]))
-
 (defn schema-list-actions [{:keys [dsid schema]}]
   (let [{:keys [table-schem]} schema]
     [:div {:style {:display "flex"
@@ -62,13 +46,15 @@
 (defn schema-list-component [value]
   (let [{::keys [dsid]} (meta value)]
     [ins/inspector
-     (->> value
-          (map (fn [item]
-                 (with-meta item
-                   {::pv/default ::action-row
-                    ::action-row {:value-meta {::pv/default ::name-label
-                                               ::name-label-fn :table-schem}
-                                  :action-bar [schema-list-actions {:schema item :dsid dsid}]}}))))]))
+     (for [item value]
+       (with-meta
+         [:div {:style {:display "flex"
+                        :flex-direction "row"
+                        :align-items "flex-start"}}
+          [:div {:style {:flex-grow 1}}
+           (:table-schem item)]
+          [schema-list-actions {:schema item :dsid dsid}]]
+         {::pv/default ::pv/hiccup}))]))
 
 (defn table-list-actions [{:keys [dsid table]}]
   (let [{:keys [table-name]} table]
@@ -88,39 +74,32 @@
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
     [ins/inspector
-     (->> value
-          (map (fn [item]
-                 (with-meta item
-                   {::pv/default ::action-row
-                    ::action-row {:value-meta {::pv/default ::name-label
-                                               ::name-label-fn :table-name}
-                                  :action-bar [table-list-actions {:table item :dsid dsid}]}}))))]))
+     (for [item value]
+       (with-meta
+         [:div {:style {:display "flex"
+                        :flex-direction "row"
+                        :align-items "flex-start"}}
+          [:div {:style {:flex-grow 1}}
+           (:table-name item)]
+          [table-list-actions {:table item :dsid dsid}]]
+         {::pv/default ::pv/hiccup}))]))
 
 (defn column-list-component [value]
   (let [{::keys [dsid]} (meta value)]
     [ins/inspector
-     (->> value
-          (map (fn [item]
-                 (with-meta item
-                   {::pv/default ::action-row
-                    ::action-row {:value-meta {::pv/default ::name-label
-                                               ::name-label-fn :column-name}}}))))]))
-                                  ; :action-bar [table-list-actions {:table item :dsid dsid}]}}))))]))
+     (for [item value]
+       (with-meta
+         [:div {:style {:display "flex"
+                        :flex-direction "row"
+                        :align-items "flex-start"}}
+          [:div {:style {:flex-grow 1}}
+           (:column-name item)]]
+         {::pv/default ::pv/hiccup}))]))
 
 (p/register-viewer!
  {:name ::paginator
   :predicate sequential?
   :component paginator-component})
-
-(p/register-viewer!
- {:name ::action-row
-  :predicate (fn [value] (contains? (meta value) ::action-row))
-  :component action-row-component})
-
-(p/register-viewer!
- {:name ::name-label
-  :predicate name-label-predicate
-  :component name-label})
 
 (p/register-viewer!
  {:name ::table-list
