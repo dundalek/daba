@@ -135,20 +135,31 @@
 
 (p/register-viewer!
  {:name ::table-list
-  :predicate sequential?
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (map? (first value))
+                    (string? (:table-name (first value)))))
   :component table-list-component})
 
 (p/register-viewer!
  {:name ::schema-list
-  :predicate sequential?
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (map? (first value))
+                    (string? (:table-schem (first value)))))
   :component schema-list-component})
 
 (p/register-viewer!
  {:name ::column-list
-  :predicate sequential?
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (map? (first value))
+                    (string? (:column-name (first value)))))
   :component column-list-component})
 
 (p/register-viewer!
  {:name ::query-editor
-  :predicate (constantly true)
+  :predicate (fn [value]
+               (or (string? value)
+                   (contains? (meta value) ::query-editor)))
   :component query-editor-component})
