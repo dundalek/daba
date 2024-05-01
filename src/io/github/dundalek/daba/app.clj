@@ -5,40 +5,31 @@
    [io.github.dundalek.daba.app.state :as state]
    [next.jdbc :as jdbc]
    [portal.api :as p]
-   [io.github.dundalek.daba.internal.jdbc :as dbc]))
+   [io.github.dundalek.daba.internal.jdbc :as dbc]
+   [io.github.dundalek.daba.internal.miniframe :as mf]))
 
-(defonce !app-db (atom state/default-state))
-
-(def effects
+(def fx
   {::fx/inspect-database fx/inspect-database
    ::fx/inspect-tables fx/inspect-tables
    ::fx/inspect-columns fx/inspect-columns})
 
-(defn fx! [[fx-name arg]]
-  (let [fx-handler (get effects fx-name)]
-    (fx-handler arg)))
+(def event
+  {::event/source-added (mf/db-handler event/source-added)
+   ::event/database-inspected (mf/fx-handler event/database-inspected)
+   ::event/tables-inspected (mf/fx-handler event/tables-inspected)
+   ::event/columns-inspected (mf/fx-handler event/columns-inspected)})
 
-(defn db-handle! [handler]
-  (fn [event]
-    (swap! !app-db handler event)))
+(defonce !app-db (atom state/default-state))
 
-(defn fx-handle! [handler]
-  (fn [event]
-    (let [{:keys [db fx]} (handler {:db @!app-db} event)]
-      (when db
-        (reset! !app-db db))
-      (run! fx! fx))))
+(def frame (mf/make-frame
+            {:event event
+             :fx fx
+             :app-db !app-db}))
 
-(def events
-  {::event/source-added (db-handle! event/source-added)
-   ::event/database-inspected (fx-handle! event/database-inspected)
-   ::event/tables-inspected (fx-handle! event/tables-inspected)
-   ::event/columns-inspected (fx-handle! event/columns-inspected)})
+(defn dispatch [event]
+  (mf/dispatch frame event))
 
-(defn dispatch [[event-name :as event]]
-  (let [handler (get events event-name)]
-    (handler event)
-    nil))
+(p/register! #'dispatch)
 
 (defn inspect-database! [db-spec]
   (let [dsid (str (gensym "dsid-"))
@@ -48,8 +39,6 @@
                 ::state/dsid dsid}]
     (dispatch [::event/source-added dsid source])
     (dispatch [::event/database-inspected dsid])))
-
-(p/register! #'dispatch)
 
 (comment
   (def db-spec "jdbc:duckdb:tmp/duck-data") ; on disk
