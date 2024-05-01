@@ -11,20 +11,20 @@
    [portal.viewer :as pv]))
 
 (def fx
-  {::fx/inspect-database fx/inspect-database
-   ::fx/inspect-tables fx/inspect-tables
-   ::fx/inspect-columns fx/inspect-columns
-   ::fx/inspect-table-data fx/inspect-table-data
-   ::fx/open-query-editor fx/open-query-editor})
+  {::fx/inspect-database #'fx/inspect-database
+   ::fx/inspect-tables #'fx/inspect-tables
+   ::fx/inspect-columns #'fx/inspect-columns
+   ::fx/inspect-table-data #'fx/inspect-table-data
+   ::fx/open-query-editor #'fx/open-query-editor})
 
 (def event
-  {::event/source-added (mf/db-handler event/source-added)
-   ::event/database-inspected (mf/fx-handler event/database-inspected)
-   ::event/tables-inspected (mf/fx-handler event/tables-inspected)
-   ::event/columns-inspected (mf/fx-handler event/columns-inspected)
-   ::event/table-data-inspected (mf/fx-handler event/table-data-inspected)
-   ::event/query-editor-opened (mf/fx-handler event/query-editor-opened)
-   ::event/query-executed (mf/fx-handler event/query-executed)})
+  {::event/source-added (mf/db-handler #'event/source-added)
+   ::event/database-inspected (mf/fx-handler #'event/database-inspected)
+   ::event/tables-inspected (mf/fx-handler #'event/tables-inspected)
+   ::event/columns-inspected (mf/fx-handler #'event/columns-inspected)
+   ::event/table-data-inspected (mf/fx-handler #'event/table-data-inspected)
+   ::event/query-editor-opened (mf/fx-handler #'event/query-editor-opened)
+   ::event/query-executed (mf/fx-handler #'event/query-executed)})
 
 (defonce !app-db (atom state/default-state))
 
