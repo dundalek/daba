@@ -1,9 +1,9 @@
 (ns io.github.dundalek.daba.app.fx
   (:require
    [clojure.string :as str]
+   [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
-   [io.github.dundalek.daba.viewer :as-alias dv]
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
    [portal.api :as p]

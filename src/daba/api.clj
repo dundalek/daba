@@ -28,10 +28,16 @@
       @!ensure-sqlite-jdbc)
     (when (and (string? db-spec) (str/starts-with? db-spec "jdbc:postgresql:"))
       @!ensure-postresql-jdbc)
-    ((requiring-resolve 'daba.internal/inspect-database) db-spec)))
+    ((requiring-resolve 'io.github.dundalek.daba.app/inspect-database!) db-spec)))
 
 (defn on-load []
   (p/eval-str (slurp "examples/portal-present/src/portal_present/viewer.cljs")))
+
+(defn open
+  ([] (open nil))
+  ([opts]
+   (p/open (merge {:on-load (fn [])}
+                  opts))))
 
 (comment
   (inspect "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")

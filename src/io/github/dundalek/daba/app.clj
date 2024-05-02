@@ -52,7 +52,7 @@
   (def db-spec "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def ds (jdbc/get-datasource db-spec))
 
-  (p/eval-str (slurp "src/io/github/dundalek/daba/viewer.cljs"))
+  (p/eval-str (slurp "src/daba/viewer.cljs"))
 
   (inspect-database! db-spec)
 

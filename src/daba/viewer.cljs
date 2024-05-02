@@ -1,4 +1,4 @@
-(ns io.github.dundalek.daba.viewer
+(ns daba.viewer
   (:require
    [io.github.dundalek.daba.app :as-alias app]
    [io.github.dundalek.daba.app.event :as-alias event]
