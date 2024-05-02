@@ -62,10 +62,15 @@
           [schema-list-actions {:schema item :dsid dsid}]]
          {::pv/default ::pv/hiccup}))]))
 
-(defn table-list-actions [{:keys [dsid table]}]
-  (let [{:keys [table-name]} table]
+(defn table-item-component [item]
+  (let [{::keys [dsid]} (meta item)
+        {:keys [table-name]} item]
     [:div {:style {:display "flex"
+                   :flex-direction "row"
+                   :align-items "flex-start"
                    :gap 6}}
+     [:div {:style {:flex-grow 1}}
+      table-name]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
@@ -82,13 +87,9 @@
     [ins/inspector
      (for [item value]
        (with-meta
-         [:div {:style {:display "flex"
-                        :flex-direction "row"
-                        :align-items "flex-start"}}
-          [:div {:style {:flex-grow 1}}
-           (:table-name item)]
-          [table-list-actions {:table item :dsid dsid}]]
-         {::pv/default ::pv/hiccup}))]))
+         item
+         {::pv/default ::table-item
+          ::dsid dsid}))]))
 
 (defn column-list-component [value]
   (let [{::keys [dsid]} (meta value)]
@@ -128,17 +129,25 @@
             ::paginator {:viewer {::pv/default ::pv/table
                                   ::pv/table (::pv/table (meta value))}}})])]]))
 
+(defn table-item? [value]
+  (and (map? value)
+       (string? (:table-name value))))
+
 (p/register-viewer!
  {:name ::paginator
   :predicate sequential?
   :component paginator-component})
 
 (p/register-viewer!
+ {:name ::table-item
+  :predicate table-item?
+  :component table-item-component})
+
+(p/register-viewer!
  {:name ::table-list
   :predicate (fn [value]
                (and (sequential? value)
-                    (map? (first value))
-                    (string? (:table-name (first value)))))
+                    (table-item? (first value))))
   :component table-list-component})
 
 (p/register-viewer!
