@@ -1,6 +1,7 @@
 (ns io.github.dundalek.daba.app
   (:require
    [io.github.dundalek.daba.app.event :as event]
+   [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
@@ -28,15 +29,16 @@
 
 (defonce !app-db (atom state/default-state))
 
-(def frame (mf/make-frame
-            {:event event
-             :fx fx
-             :app-db !app-db}))
+(alter-var-root #'frame/*frame*
+                (constantly
+                 (mf/make-frame
+                  {:event event
+                   :fx fx
+                   :app-db !app-db})))
 
-(defn dispatch [event]
-  (mf/dispatch frame event))
+(def dispatch frame/dispatch)
 
-(p/register! #'dispatch)
+(p/register! #'frame/dispatch)
 
 (defn inspect-database! [db-spec]
   (let [dsid (str (gensym "dsid-"))

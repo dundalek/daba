@@ -2,6 +2,7 @@
   (:require
    [io.github.dundalek.daba.app :as-alias app]
    [io.github.dundalek.daba.app.event :as-alias event]
+   [io.github.dundalek.daba.app.frame :as-alias frame]
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [portal.ui.rpc :as rpc]
@@ -13,7 +14,7 @@
   message)
 
 (defn dispatch [event]
-  (rpc/call `app/dispatch event))
+  (rpc/call `frame/dispatch event))
 
 (def default-page-size 20)
 
