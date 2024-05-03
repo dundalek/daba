@@ -40,11 +40,26 @@
             paginated
             viewer)]]))))
 
+(defn paginator [{:keys [offset limit on-offset-change]}]
+  (let [page (/ offset limit)]
+    [:div {:style {:display "flex"
+                   :justify-content "center"
+                   :gap 12
+                   :padding 6}}
+     [:button {:on-click (fn [ev]
+                           (.stopPropagation ev)
+                           (on-offset-change (max 0 (- offset limit))))}
+      (tr ["prev"])]
+     [:span (inc page)]
+     [:button {:on-click (fn [ev]
+                           (.stopPropagation ev)
+                           (on-offset-change (+ offset limit)))}
+      (tr ["next"])]]))
+
 (defn datagrid-component [coll]
   (let [{::keys [datagrid dsid]} (meta coll)
         {:keys [query-map viewer]} datagrid
         {:keys [limit offset]} query-map
-        page (/ offset limit)
         path (-> (ins/use-context) :path butlast)
         paginate (fn [new-offset]
                    (dispatch [::event/datagrid-query-changed
@@ -56,19 +71,9 @@
       (with-meta
         (into [] coll)
         viewer)]
-     [:div {:style {:display "flex"
-                    :justify-content "center"
-                    :gap 12
-                    :padding 6}}
-      [:button {:on-click (fn [ev]
-                            (.stopPropagation ev)
-                            (paginate (max 0 (- offset limit))))}
-       (tr ["prev"])]
-      [:span (inc page)]
-      [:button {:on-click (fn [ev]
-                            (.stopPropagation ev)
-                            (paginate (+ offset limit)))}
-       (tr ["next"])]]]))
+     [paginator {:offset offset
+                 :limit limit
+                 :on-offset-change paginate}]]))
 
 (defn schema-list-actions [{:keys [dsid schema]}]
   (let [{:keys [table-schem]} schema]
