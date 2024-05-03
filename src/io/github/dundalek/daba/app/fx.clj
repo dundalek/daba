@@ -31,6 +31,19 @@
                       :query-map query-map}
        ::dv/dsid dsid})))
 
+(defn- execute-string-query [source query]
+  (let [{::state/keys [ds dsid]} source
+        results (if (str/blank? query)
+                  []
+                  (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
+        {:keys [columns]} (meta results)]
+    (with-meta
+      results
+      {::pv/default ::dv/query-editor
+       ::pv/table {:columns columns}
+       ::dv/query-editor {:query query}
+       ::dv/dsid dsid})))
+
 ;; Effects
 
 (defn inspect-columns [{:keys [source table-name]}]
@@ -61,34 +74,14 @@
                        :schema-name nil}))))
 
 (defn open-query-editor [{:keys [source query]}]
-  (let [{::state/keys [ds dsid]} source
-        results (if (str/blank? query)
-                  []
-                  (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
-        {:keys [columns]} (meta results)]
-    (submit
-     (atom
-      (with-meta
-        results
-        {::pv/default ::dv/query-editor
-         ::pv/table {:columns columns}
-         ::dv/query-editor {:query query}
-         ::dv/dsid dsid})))))
+  (submit
+   (atom
+    (execute-string-query source query))))
 
 (defn execute-query [{:keys [source query !query-atom]}]
-  (let [{::state/keys [ds dsid]} source
-        results (if (str/blank? query)
-                  []
-                  (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
-        {:keys [columns]} (meta results)]
-    ;; Prone to race condition, consider some kind of queue in the future
-    (reset! !query-atom
-            (with-meta
-              results
-              {::pv/default ::dv/query-editor
-               ::pv/table {:columns columns}
-               ::dv/query-editor {:query query}
-               ::dv/dsid dsid}))))
+  ;; Prone to race condition, consider some kind of queue in the future
+  (reset! !query-atom
+          (execute-string-query source query)))
 
 (defn inspect-table-data [{:keys [source query-map]}]
   (submit
