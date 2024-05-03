@@ -156,7 +156,10 @@
        ;; https://github.com/djblue/portal/pull/224
        [:input {:name "query"
                 :type "text"
-                :default-value query}]
+                :default-value query
+                :on-click (fn [ev]
+                            ;; stop propagation so that portal selection does not steal input focus
+                            (.stopPropagation ev))}]
        [:button {:type "submit"
                  :name "execute"}
         (tr ["execute"])]
