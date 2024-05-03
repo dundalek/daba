@@ -4,6 +4,20 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.app.fx :as-alias fx]))
 
+;; Helpers
+
+(defn remove-nth [coll n]
+  (concat
+   (take n coll)
+   (drop (inc n) coll)))
+
+(comment
+  [(remove-nth [1 2 3] 0)
+   (remove-nth [1 2 3] 1)
+   (remove-nth [1 2 3] 2)])
+
+;; Events
+
 (defn source-added [db [_ dsid source]]
   (update db ::state/sources assoc dsid source))
 
@@ -35,3 +49,11 @@
 
 (defn tap-submitted [db [_ value]]
   (update db ::state/taps conj value))
+
+(defn tap-removed [db [_ path]]
+  (assert (= (count path) 1) "Only supporting top level list for now")
+  (update db ::state/taps
+          (fn [coll]
+            (with-meta
+              (remove-nth coll (first path))
+              (meta coll)))))

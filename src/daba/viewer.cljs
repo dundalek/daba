@@ -130,9 +130,41 @@
             ::paginator {:viewer {::pv/default ::pv/table
                                   ::pv/table (::pv/table (meta value))}}})])]]))
 
+(defn removable-item-component [value]
+  (let [{:keys [path]} (ins/use-context)]
+    [:div {:style {:display "flex"
+                   :flex-direction "row"
+                   :align-items "flex-start"}}
+     [:div {:style {:flex-grow 1}}
+      [ins/inspector value]]
+     [:button
+      {:on-click (fn [ev]
+                   (.stopPropagation ev)
+                   ;; last segment seems to be extra 0, dropping it
+                   (dispatch [::event/tap-removed (butlast path)]))}
+      "X"]]))
+
+(defn removable-list-component [coll]
+  [ins/inspector
+   (for [item coll]
+     (with-meta
+       [::removable-item
+        item]
+       {::pv/default ::pv/hiccup}))])
+
 (defn table-item? [value]
   (and (map? value)
        (string? (:table-name value))))
+
+(p/register-viewer!
+ {:name ::removable-item
+  :predicate (constantly true)
+  :component removable-item-component})
+
+(p/register-viewer!
+ {:name ::removable-list
+  :predicate sequential?
+  :component removable-list-component})
 
 (p/register-viewer!
  {:name ::paginator

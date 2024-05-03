@@ -1,5 +1,6 @@
 (ns io.github.dundalek.daba.app
   (:require
+   [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.fx :as fx]
@@ -26,7 +27,8 @@
    ::event/table-data-inspected (mf/fx-handler #'event/table-data-inspected)
    ::event/query-editor-opened (mf/fx-handler #'event/query-editor-opened)
    ::event/query-executed (mf/fx-handler #'event/query-executed)
-   ::event/tap-submitted (mf/db-handler #'event/tap-submitted)})
+   ::event/tap-submitted (mf/db-handler #'event/tap-submitted)
+   ::event/tap-removed (mf/db-handler #'event/tap-removed)})
 
 (defonce !app-db (atom state/default-state))
 
@@ -53,11 +55,17 @@
 (defonce !taps
   (let [!taps (atom nil)
         watcher (fn [_ _ _ new-state]
-                  (reset! !taps (::state/taps new-state)))]
+                  (reset! !taps
+                          (with-meta
+                            (::state/taps new-state)
+                            {::pv/default ::dv/removable-list})))]
     ;; Poor man's subscription
     (add-watch !app-db ::taps watcher)
     (watcher nil nil nil @!app-db)
     !taps))
+
+(defn submit [value]
+  (frame/dispatch [::event/tap-submitted value]))
 
 (defn load-viewers []
   (p/eval-str (slurp "src/daba/viewer.cljs")))
