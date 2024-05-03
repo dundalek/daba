@@ -40,6 +40,36 @@
             paginated
             viewer)]]))))
 
+(defn datagrid-component [coll]
+  (let [{::keys [datagrid dsid]} (meta coll)
+        {:keys [query-map viewer]} datagrid
+        {:keys [limit offset]} query-map
+        page (/ offset limit)
+        path (-> (ins/use-context) :path butlast)
+        paginate (fn [new-offset]
+                   (dispatch [::event/datagrid-query-changed
+                              {:dsid dsid
+                               :path path
+                               :query-map (assoc query-map :offset new-offset)}]))]
+    [:div
+     [ins/inspector
+      (with-meta
+        (into [] coll)
+        viewer)]
+     [:div {:style {:display "flex"
+                    :justify-content "center"
+                    :gap 12
+                    :padding 6}}
+      [:button {:on-click (fn [ev]
+                            (.stopPropagation ev)
+                            (paginate (max 0 (- offset limit))))}
+       (tr ["prev"])]
+      [:span (inc page)]
+      [:button {:on-click (fn [ev]
+                            (.stopPropagation ev)
+                            (paginate (+ offset limit)))}
+       (tr ["next"])]]]))
+
 (defn schema-list-actions [{:keys [dsid schema]}]
   (let [{:keys [table-schem]} schema]
     [:div {:style {:display "flex"
@@ -215,3 +245,9 @@
                (or (string? value)
                    (contains? (meta value) ::query-editor)))
   :component query-editor-component})
+
+(p/register-viewer!
+ {:name ::datagrid
+  :predicate (fn [value]
+               (map? (::datagrid (meta value))))
+  :component datagrid-component})

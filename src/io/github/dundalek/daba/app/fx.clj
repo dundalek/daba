@@ -10,18 +10,28 @@
    [next.jdbc.sql :as sql]
    [portal.viewer :as pv]))
 
+;; Helpers
+
 (defn submit [value]
   (frame/dispatch [::event/tap-submitted value]))
 
-(defn inspect-table-data [{:keys [source table-name]}]
+(defn- execute-structured-query [source query-map]
   (let [{::state/keys [ds dsid]} source
-        rows (sql/find-by-keys ds table-name :all)]
-    (submit
-     (with-meta
-       rows
-       {::pv/default ::dv/paginator
-        ::dv/paginator {:viewer {::pv/default ::pv/table}}
-        ::dv/dsid dsid}))))
+        {:keys [table where limit offset]} query-map
+        results (sql/find-by-keys ds table where
+                                  {:limit limit
+                                   :offset offset
+                                   :builder-fn dbc/as-maps-with-columns-meta})
+        {:keys [columns]} (meta results)]
+    (with-meta
+      results
+      {::pv/default ::dv/datagrid
+       ::dv/datagrid {:viewer {::pv/default ::pv/table
+                               ::pv/table {:columns columns}}
+                      :query-map query-map}
+       ::dv/dsid dsid})))
+
+;; Effects
 
 (defn inspect-columns [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source
@@ -79,3 +89,13 @@
                ::pv/table {:columns columns}
                ::dv/query-editor {:query query}
                ::dv/dsid dsid}))))
+
+(defn inspect-table-data [{:keys [source query-map]}]
+  (submit
+   (atom
+    (execute-structured-query source query-map))))
+
+(defn execute-query-map [{:keys [source query-map !query-atom]}]
+  ;; Prone to race condition, consider some kind of queue in the future
+  (reset! !query-atom
+          (execute-structured-query source query-map)))

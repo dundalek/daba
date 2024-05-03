@@ -34,7 +34,18 @@
 
 (defn table-data-inspected [{:keys [db]} [_ dsid table-name]]
   {:fx [[::fx/inspect-table-data {:source (core/get-source db dsid)
-                                  :table-name table-name}]]})
+                                  :query-map {:table table-name
+                                              :where :all
+                                              :limit 100
+                                              :offset 0}}]]})
+
+(defn datagrid-query-changed [{:keys [db]} [_ {:keys [dsid path query-map]}]]
+  (assert (= (count path) 1) "Only supporting top level list for now")
+  (let [source (core/get-source db dsid)
+        !query-atom (nth (::state/taps db) (first path))]
+    {:fx [[::fx/execute-query-map {:source source
+                                   :query-map query-map
+                                   :!query-atom !query-atom}]]}))
 
 (defn query-editor-opened [{:keys [db]} [_ dsid]]
   {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)

@@ -18,7 +18,8 @@
    ::fx/inspect-columns #'fx/inspect-columns
    ::fx/inspect-table-data #'fx/inspect-table-data
    ::fx/open-query-editor #'fx/open-query-editor
-   ::fx/execute-query #'fx/execute-query})
+   ::fx/execute-query #'fx/execute-query
+   ::fx/execute-query-map #'fx/execute-query-map})
 
 (def event
   {::event/source-added (mf/db-handler #'event/source-added)
@@ -26,6 +27,7 @@
    ::event/tables-inspected (mf/fx-handler #'event/tables-inspected)
    ::event/columns-inspected (mf/fx-handler #'event/columns-inspected)
    ::event/table-data-inspected (mf/fx-handler #'event/table-data-inspected)
+   ::event/datagrid-query-changed (mf/fx-handler #'event/datagrid-query-changed)
    ::event/query-editor-opened (mf/fx-handler #'event/query-editor-opened)
    ::event/new-query-executed (mf/fx-handler #'event/new-query-executed)
    ::event/query-executed (mf/fx-handler #'event/query-executed)
