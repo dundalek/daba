@@ -27,6 +27,7 @@
    ::event/columns-inspected (mf/fx-handler #'event/columns-inspected)
    ::event/table-data-inspected (mf/fx-handler #'event/table-data-inspected)
    ::event/query-editor-opened (mf/fx-handler #'event/query-editor-opened)
+   ::event/new-query-executed (mf/fx-handler #'event/new-query-executed)
    ::event/query-executed (mf/fx-handler #'event/query-executed)
    ::event/tap-submitted (mf/db-handler #'event/tap-submitted)
    ::event/tap-removed (mf/db-handler #'event/tap-removed)})

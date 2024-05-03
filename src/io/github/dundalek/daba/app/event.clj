@@ -40,6 +40,10 @@
   {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
                                  :query ""}]]})
 
+(defn new-query-executed [{:keys [db]} [_ {:keys [dsid query]}]]
+  {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
+                                 :query query}]]})
+
 (defn query-executed [{:keys [db]} [_ {:keys [dsid query path]}]]
   (let [source (or (core/get-source db dsid)
                    ;; It might be better to use last used source or offer choice

@@ -115,17 +115,24 @@
      [:div
       [:form {:on-submit (fn [ev]
                            (.preventDefault ev)
-                             ;; do RPC here
                            (let [query (-> ev .-target .-query .-value)]
-                             (dispatch [::event/query-executed {:path (butlast path)
-                                                                :dsid dsid
-                                                                :query query}])))}
+                             (if (= (-> ev .-nativeEvent .-submitter .-name) "execute")
+                               (dispatch [::event/query-executed {:path (butlast path)
+                                                                  :dsid dsid
+                                                                  :query query}])
+                               (dispatch [::event/new-query-executed {:dsid dsid
+                                                                      :query query}]))))}
        ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
        ;; https://github.com/djblue/portal/pull/224
        [:input {:name "query"
                 :type "text"
                 :default-value query}]
-       [:button {:type "submit"} (tr ["execute"])]]
+       [:button {:type "submit"
+                 :name "execute"}
+        (tr ["execute"])]
+       [:button {:type "submit"
+                 :name "execute-new"}
+        (tr ["execute as new"])]]
       (when (seq results)
         [::pv/inspector
          (with-meta results
