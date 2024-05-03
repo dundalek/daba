@@ -17,7 +17,8 @@
    ::fx/inspect-tables #'fx/inspect-tables
    ::fx/inspect-columns #'fx/inspect-columns
    ::fx/inspect-table-data #'fx/inspect-table-data
-   ::fx/open-query-editor #'fx/open-query-editor})
+   ::fx/open-query-editor #'fx/open-query-editor
+   ::fx/execute-query #'fx/execute-query})
 
 (def event
   {::event/source-added (mf/db-handler #'event/source-added)

@@ -57,10 +57,25 @@
                   (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
         {:keys [columns]} (meta results)]
     (submit
-     (with-meta
-       results
-       {::pv/default ::dv/query-editor
-        ::pv/table {:columns columns}
-        ::dv/query-editor {:query query}
-        ::dv/dsid dsid}))))
+     (atom
+      (with-meta
+        results
+        {::pv/default ::dv/query-editor
+         ::pv/table {:columns columns}
+         ::dv/query-editor {:query query}
+         ::dv/dsid dsid})))))
 
+(defn execute-query [{:keys [source query !query-atom]}]
+  (let [{::state/keys [ds dsid]} source
+        results (if (str/blank? query)
+                  []
+                  (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
+        {:keys [columns]} (meta results)]
+    ;; Prone to race condition, consider some kind of queue in the future
+    (reset! !query-atom
+            (with-meta
+              results
+              {::pv/default ::dv/query-editor
+               ::pv/table {:columns columns}
+               ::dv/query-editor {:query query}
+               ::dv/dsid dsid}))))

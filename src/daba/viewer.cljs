@@ -108,7 +108,8 @@
   (let [[query results] (if (string? value)
                           [value nil]
                           [(-> value meta ::query-editor :query) value])
-        {::keys [dsid]} (meta value)]
+        {::keys [dsid]} (meta value)
+        {:keys [path]} (ins/use-context)]
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
@@ -116,7 +117,9 @@
                            (.preventDefault ev)
                              ;; do RPC here
                            (let [query (-> ev .-target .-query .-value)]
-                             (dispatch [::event/query-executed dsid query])))}
+                             (dispatch [::event/query-executed {:path (butlast path)
+                                                                :dsid dsid
+                                                                :query query}])))}
        ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
        ;; https://github.com/djblue/portal/pull/224
        [:input {:name "query"

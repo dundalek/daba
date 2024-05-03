@@ -40,12 +40,14 @@
   {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
                                  :query ""}]]})
 
-(defn query-executed [{:keys [db]} [_ dsid query]]
+(defn query-executed [{:keys [db]} [_ {:keys [dsid query path]}]]
   (let [source (or (core/get-source db dsid)
                    ;; It might be better to use last used source or offer choice
-                   (first (vals (::state/sources db))))]
-    {:fx [[::fx/open-query-editor {:source source
-                                   :query query}]]}))
+                   (first (vals (::state/sources db))))
+        !query-atom (nth (::state/taps db) (first path))]
+    {:fx [[::fx/execute-query {:source source
+                               :query query
+                               :!query-atom !query-atom}]]}))
 
 (defn tap-submitted [db [_ value]]
   (update db ::state/taps conj value))
