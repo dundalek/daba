@@ -32,3 +32,6 @@
                    (first (vals (::state/sources db))))]
     {:fx [[::fx/open-query-editor {:source source
                                    :query query}]]}))
+
+(defn tap-submitted [db [_ value]]
+  (update db ::state/taps conj value))

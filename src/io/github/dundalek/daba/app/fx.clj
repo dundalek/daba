@@ -2,17 +2,21 @@
   (:require
    [clojure.string :as str]
    [daba.viewer :as-alias dv]
+   [io.github.dundalek.daba.app.event :as-alias event]
+   [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
-   [portal.api :as p]
    [portal.viewer :as pv]))
+
+(defn submit [value]
+  (frame/dispatch [::event/tap-submitted value]))
 
 (defn inspect-table-data [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source
         rows (sql/find-by-keys ds table-name :all)]
-    (p/submit
+    (submit
      (with-meta
        rows
        {::pv/default ::dv/paginator
@@ -22,7 +26,7 @@
 (defn inspect-columns [{:keys [source table-name]}]
   (let [{::state/keys [ds dsid]} source
         columns (dbc/get-columns ds table-name)]
-    (p/submit
+    (submit
      (-> columns
          (pv/default ::dv/column-list)
          (vary-meta assoc ::dv/dsid dsid)))))
@@ -30,7 +34,7 @@
 (defn inspect-tables [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source
         tables (dbc/get-tables ds schema-name)]
-    (p/submit
+    (submit
      (-> tables
          (pv/default ::dv/table-list)
          (vary-meta assoc ::dv/dsid dsid)))))
@@ -39,7 +43,7 @@
   (let [{::state/keys [ds dsid]} source
         schemas (dbc/get-schemas ds)]
     (if (seq schemas)
-      (p/submit
+      (submit
        (-> schemas
            (pv/default ::dv/schema-list)
            (vary-meta assoc ::dv/dsid dsid)))
@@ -52,7 +56,7 @@
                   []
                   (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
         {:keys [columns]} (meta results)]
-    (p/submit
+    (submit
      (with-meta
        results
        {::pv/default ::dv/query-editor

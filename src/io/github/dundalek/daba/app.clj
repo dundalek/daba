@@ -25,7 +25,8 @@
    ::event/columns-inspected (mf/fx-handler #'event/columns-inspected)
    ::event/table-data-inspected (mf/fx-handler #'event/table-data-inspected)
    ::event/query-editor-opened (mf/fx-handler #'event/query-editor-opened)
-   ::event/query-executed (mf/fx-handler #'event/query-executed)})
+   ::event/query-executed (mf/fx-handler #'event/query-executed)
+   ::event/tap-submitted (mf/db-handler #'event/tap-submitted)})
 
 (defonce !app-db (atom state/default-state))
 
@@ -49,12 +50,29 @@
     (dispatch [::event/source-added dsid source])
     (dispatch [::event/database-inspected dsid])))
 
+(defonce !taps
+  (let [!taps (atom nil)
+        watcher (fn [_ _ _ new-state]
+                  (reset! !taps (::state/taps new-state)))]
+    ;; Poor man's subscription
+    (add-watch !app-db ::taps watcher)
+    (watcher nil nil nil @!app-db)
+    !taps))
+
+(defn load-viewers []
+  (p/eval-str (slurp "src/daba/viewer.cljs")))
+
 (comment
   (def db-spec "jdbc:duckdb:tmp/duck-data") ; on disk
   (def db-spec "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def ds (jdbc/get-datasource db-spec))
 
-  (p/eval-str (slurp "src/daba/viewer.cljs"))
+  (do
+    (p/open {:value !taps
+             :on-load load-viewers})
+    (add-tap #'submit))
+
+  (load-viewers)
 
   (inspect-database! db-spec)
 
