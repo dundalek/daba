@@ -16,6 +16,12 @@
    (remove-nth [1 2 3] 1)
    (remove-nth [1 2 3] 2)])
 
+(defn coerce-query [query]
+  (merge {:offset 0 :limit 100}
+         (if (string? query)
+           {:statement query}
+           query)))
+
 ;; Events
 
 (defn source-added [db [_ dsid source]]
@@ -49,11 +55,11 @@
 
 (defn query-editor-opened [{:keys [db]} [_ dsid]]
   {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
-                                 :query ""}]]})
+                                 :query (coerce-query "")}]]})
 
 (defn new-query-executed [{:keys [db]} [_ {:keys [dsid query]}]]
   {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
-                                 :query query}]]})
+                                 :query (coerce-query query)}]]})
 
 (defn query-executed [{:keys [db]} [_ {:keys [dsid query path]}]]
   (let [source (or (core/get-source db dsid)
@@ -61,7 +67,7 @@
                    (first (vals (::state/sources db))))
         !query-atom (nth (::state/taps db) (first path))]
     {:fx [[::fx/execute-query {:source source
-                               :query query
+                               :query (coerce-query query)
                                :!query-atom !query-atom}]]}))
 
 (defn tap-submitted [db [_ value]]

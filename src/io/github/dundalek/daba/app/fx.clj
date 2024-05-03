@@ -31,11 +31,17 @@
                       :query-map query-map}
        ::dv/dsid dsid})))
 
-(defn- execute-string-query [source query]
+(defn- execute-string-query [source {:keys [statement offset limit] :as query}]
   (let [{::state/keys [ds dsid]} source
-        results (if (str/blank? query)
+        results (if (str/blank? statement)
                   []
-                  (jdbc/execute! ds [query] {:builder-fn dbc/as-maps-with-columns-meta}))
+                  ;; This is inefficient because whole result set will be realized,
+                  ;; but at least that will be on JVM side and won't bog down the browser.
+                  ;; Consider using jdbc/plan to realize less things as an optimization.
+                  (into []
+                        (comp (drop offset)
+                              (take limit))
+                        (jdbc/execute! ds [statement] {:builder-fn dbc/as-maps-with-columns-meta})))
         {:keys [columns]} (meta results)]
     (with-meta
       results

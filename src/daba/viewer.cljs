@@ -6,8 +6,7 @@
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [portal.ui.rpc :as rpc]
-   [portal.viewer :as-alias pv]
-   [reagent.core :as r]))
+   [portal.viewer :as-alias pv]))
 
 ;; Inspired by and could later drop in https://github.com/taoensso/tempura
 (defn tr [[message]]
@@ -15,30 +14,6 @@
 
 (defn dispatch [event]
   (rpc/call `frame/dispatch event))
-
-(def default-page-size 20)
-
-(defn paginator-component []
-  (let [page (r/atom 0)]
-    (fn [coll]
-      (let [{:keys [viewer page-size]} (::paginator (meta coll))
-            page-size (or page-size default-page-size)
-            paginated (->> coll
-                           (drop (* @page page-size))
-                           (take page-size)
-                           vec)]
-        [:<>
-         [:div {:style {:display "flex"
-                        :justify-content "center"
-                        :gap 12
-                        :padding 6}}
-          [:button {:on-click (fn [] (swap! page #(max 0 (dec %))))} (tr ["prev"])]
-          [:span (inc @page)]
-          [:button {:on-click #(swap! page inc)} (tr ["next"])]]
-         [ins/inspector
-          (with-meta
-            paginated
-            viewer)]]))))
 
 (defn paginator [{:keys [offset limit on-offset-change]}]
   (let [page (/ offset limit)]
@@ -141,27 +116,31 @@
 
 (defn query-editor-component [value]
   (let [[query results] (if (string? value)
-                          [value nil]
+                          [{:statement value} nil]
                           [(-> value meta ::query-editor :query) value])
+        {:keys [statement offset limit]} query
+        {:keys [path]} (ins/use-context)
         {::keys [dsid]} (meta value)
-        {:keys [path]} (ins/use-context)]
+        execute-query (fn [q]
+                        (dispatch [::event/query-executed
+                                   {:path (butlast path)
+                                    :dsid dsid
+                                    :query q}]))]
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
       [:form {:on-submit (fn [ev]
                            (.preventDefault ev)
-                           (let [query (-> ev .-target .-query .-value)]
+                           (let [statement (-> ev .-target .-query .-value)]
                              (if (= (-> ev .-nativeEvent .-submitter .-name) "execute")
-                               (dispatch [::event/query-executed {:path (butlast path)
-                                                                  :dsid dsid
-                                                                  :query query}])
+                               (execute-query {:statement statement})
                                (dispatch [::event/new-query-executed {:dsid dsid
-                                                                      :query query}]))))}
+                                                                      :query statement}]))))}
        ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
        ;; https://github.com/djblue/portal/pull/224
        [:input {:name "query"
                 :type "text"
-                :default-value query
+                :default-value statement
                 :on-click (fn [ev]
                             ;; stop propagation so that portal selection does not steal input focus
                             (.stopPropagation ev))}]
@@ -171,12 +150,16 @@
        [:button {:type "submit"
                  :name "execute-new"}
         (tr ["execute as new"])]]
-      (when (seq results)
-        [::pv/inspector
-         (with-meta results
-           {::pv/default ::paginator
-            ::paginator {:viewer {::pv/default ::pv/table
-                                  ::pv/table (::pv/table (meta value))}}})])]]))
+      [:div
+       (when (seq results)
+         [::pv/inspector
+          (with-meta results
+            {::pv/default ::pv/table
+             ::pv/table (::pv/table (meta value))})])
+       (when (or (seq results) (not (zero? offset)))
+         [paginator {:offset offset
+                     :limit limit
+                     :on-offset-change #(execute-query (assoc query :offset %))}])]]]))
 
 (defn removable-item-component [value]
   (let [{:keys [path]} (ins/use-context)]
@@ -213,11 +196,6 @@
  {:name ::removable-list
   :predicate sequential?
   :component removable-list-component})
-
-(p/register-viewer!
- {:name ::paginator
-  :predicate sequential?
-  :component paginator-component})
 
 (p/register-viewer!
  {:name ::table-item
