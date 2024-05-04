@@ -32,7 +32,7 @@
                 ::state/db-spec db-spec
                 ::state/dsid dsid}]
     (dispatch [::event/source-added dsid source])
-    (dispatch [::event/database-inspected dsid])))
+    (dispatch (event/database-inspected dsid))))
 
 (defonce !taps
   (let [!taps (atom nil)
@@ -46,7 +46,7 @@
     !taps))
 
 (defn submit [value]
-  (frame/dispatch [::event/tap-submitted value]))
+  (frame/dispatch (event/tap-submitted value)))
 
 (defn load-viewers []
   (p/eval-str (slurp "src/daba/viewer.cljs")))
@@ -80,9 +80,9 @@
 
   (dispatch (event/database-inspected dsid))
 
-  (dispatch [::event/database-inspected dsid])
+  (dispatch (event/database-inspected dsid))
 
-  (dispatch [::event/datasource-input-opened])
+  (dispatch (event/datasource-input-opened))
 
   (dispatch [::event/tables-inspected dsid "main"])
 
@@ -90,8 +90,8 @@
 
   (dispatch (event/query-editor-opened dsid))
 
-  (dispatch [::event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}])
-  (dispatch [::event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}])
+  (dispatch (event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}))
+  (dispatch (event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}))
 
   (->> (dbc/get-columns ds "pushes")
        count)

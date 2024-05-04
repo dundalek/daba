@@ -14,7 +14,7 @@
 
 ;; Helpers
 
-(defn submit [value]
+(defn- submit [value]
   (frame/dispatch [::event/removable-tap-submitted value]))
 
 (defn- execute-structured-query [source query-map]
@@ -54,7 +54,7 @@
        ::dv/query-editor {:query query}
        ::dv/dsid dsid})))
 
-(defn inspect-tables! [{:keys [source schema-name]}]
+(defn- inspect-tables! [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source
         tables (dbc/get-tables ds schema-name)]
     (submit
