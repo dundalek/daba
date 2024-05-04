@@ -32,7 +32,7 @@
 (def-event-db source-added [db [_ dsid source]]
   (update db ::state/sources assoc dsid source))
 
-(def-event-fx database-inspected ([_])
+(def-event-fx database-inspected
   ([{:keys [db]} [_ dsid]]
    {:fx [(fx/inspect-database (core/get-source db dsid))]}))
 
