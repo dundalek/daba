@@ -33,7 +33,8 @@
    ::event/query-executed (mf/fx-handler #'event/query-executed)
    ::event/tap-submitted (mf/db-handler #'event/tap-submitted)
    ::event/removable-tap-submitted (mf/db-handler #'event/removable-tap-submitted)
-   ::event/tap-removed (mf/db-handler #'event/tap-removed)})
+   ::event/tap-removed (mf/db-handler #'event/tap-removed)
+   ::event/datasource-input-opened (mf/db-handler #'event/datasource-input-opened)})
 
 (defonce !app-db (atom state/default-state))
 
@@ -102,6 +103,8 @@
                 key))
 
   (dispatch [::event/database-inspected dsid])
+
+  (dispatch [::event/datasource-input-opened])
 
   (dispatch [::event/tables-inspected dsid "main"])
 

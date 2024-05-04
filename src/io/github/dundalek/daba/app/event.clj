@@ -95,3 +95,9 @@
             (with-meta
               (remove-nth coll (first path))
               (meta coll)))))
+
+(defn datasource-input-opened [db _]
+  (core/append-tap
+   db
+   (with-meta {}
+     {::pv/default ::dv/new-datasource})))

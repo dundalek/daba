@@ -15,6 +15,16 @@
 (defn dispatch [event]
   (rpc/call `frame/dispatch event))
 
+(defn textarea [props]
+   ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
+   ;; https://github.com/djblue/portal/pull/224
+  [:input (merge
+           {:type "text"
+            :on-click (fn [ev]
+                          ;; stop propagation so that portal selection does not steal input focus
+                        (.stopPropagation ev))}
+           props)])
+
 (defn paginator [{:keys [offset limit on-offset-change]}]
   (let [page (/ offset limit)]
     [:div {:style {:display "flex"
@@ -135,15 +145,12 @@
                              (if (= (-> ev .-nativeEvent .-submitter .-name) "execute")
                                (execute-query {:statement statement})
                                (dispatch [::event/new-query-executed {:dsid dsid
-                                                                      :query statement}]))))}
-       ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
-       ;; https://github.com/djblue/portal/pull/224
-       [:input {:name "query"
-                :type "text"
-                :default-value statement
-                :on-click (fn [ev]
-                            ;; stop propagation so that portal selection does not steal input focus
-                            (.stopPropagation ev))}]
+                                                                      :query statement}]))))
+              :style {:display "flex"
+                      :gap 6}}
+       [textarea {:name "query"
+                  :default-value statement
+                  :style {:flex-grow 1}}]
        [:button {:type "submit"
                  :name "execute"}
         (tr ["execute"])]
@@ -181,6 +188,28 @@
 (defn table-item? [value]
   (and (map? value)
        (string? (:table-name value))))
+
+(defn new-datasource-component [_]
+  [:form {:on-submit (fn [ev]
+                       (.preventDefault ev))
+                       ; (let [datasource (-> ev .-target .-datasource .-value)]
+                       ;   (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
+          :style {:display "flex"
+                  :gap 6}}
+   [textarea {:name "datasource"
+              :placeholder "connection string e.g. postgres://user@host:port/dbname"
+              :style {:flex-grow 1}}]
+   [:button {:type "submit"
+             :name "schema"}
+    (tr ["schema"])]
+   [:button {:type "submit"
+             :name "query"}
+    (tr ["query"])]])
+
+(p/register-viewer!
+ {:name ::new-datasource
+  :predicate (constantly true)
+  :component new-datasource-component})
 
 (p/register-viewer!
  {:name ::removable-item
