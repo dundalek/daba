@@ -4,6 +4,8 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.app.fx :as-alias fx]))
 
+(def default-page-size 100)
+
 ;; Helpers
 
 (defn remove-nth [coll n]
@@ -17,7 +19,7 @@
    (remove-nth [1 2 3] 2)])
 
 (defn coerce-query [query]
-  (merge {:offset 0 :limit 100}
+  (merge {:offset 0 :limit default-page-size}
          (if (string? query)
            {:statement query}
            query)))
@@ -42,7 +44,7 @@
   {:fx [[::fx/inspect-table-data {:source (core/get-source db dsid)
                                   :query-map {:table table-name
                                               :where :all
-                                              :limit 100
+                                              :limit default-page-size
                                               :offset 0}}]]})
 
 (defn datagrid-query-changed [{:keys [db]} [_ {:keys [dsid path query-map]}]]
