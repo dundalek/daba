@@ -2,7 +2,7 @@
   (:require
    [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.core :as core]
-   [io.github.dundalek.daba.app.fx :as-alias fx]
+   [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.miniframe :refer [def-event-db def-event-fx]]
    [portal.viewer :as-alias pv]))
@@ -34,47 +34,47 @@
 
 (def-event-fx database-inspected ([_])
   ([{:keys [db]} [_ dsid]]
-   {:fx [[::fx/inspect-database (core/get-source db dsid)]]}))
+   {:fx [(fx/inspect-database (core/get-source db dsid))]}))
 
 (def-event-fx tables-inspected [{:keys [db]} [_ dsid schema-name]]
-  {:fx [[::fx/inspect-tables {:source (core/get-source db dsid)
-                              :schema-name schema-name}]]})
+  {:fx [(fx/inspect-tables {:source (core/get-source db dsid)
+                            :schema-name schema-name})]})
 
 (def-event-fx columns-inspected [{:keys [db]} [_ dsid table-name]]
-  {:fx [[::fx/inspect-columns {:source (core/get-source db dsid)
-                               :table-name table-name}]]})
+  {:fx [(fx/inspect-columns {:source (core/get-source db dsid)
+                             :table-name table-name})]})
 
 (def-event-fx table-data-inspected [{:keys [db]} [_ dsid table-name]]
-  {:fx [[::fx/inspect-table-data {:source (core/get-source db dsid)
-                                  :query-map {:table table-name
-                                              :where :all
-                                              :limit default-page-size
-                                              :offset 0}}]]})
+  {:fx [(fx/inspect-table-data {:source (core/get-source db dsid)
+                                :query-map {:table table-name
+                                            :where :all
+                                            :limit default-page-size
+                                            :offset 0}})]})
 
 (def-event-fx datagrid-query-changed [{:keys [db]} [_ {:keys [dsid path query-map]}]]
   (assert (= (count path) 1) "Only supporting top level list for now")
   (let [source (core/get-source db dsid)
         !query-atom (nth (::state/taps db) (first path))]
-    {:fx [[::fx/execute-query-map {:source source
-                                   :query-map query-map
-                                   :!query-atom !query-atom}]]}))
+    {:fx [(fx/execute-query-map {:source source
+                                 :query-map query-map
+                                 :!query-atom !query-atom})]}))
 
 (def-event-fx query-editor-opened [{:keys [db]} [_ dsid]]
-  {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
-                                 :query (coerce-query "")}]]})
+  {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
+                               :query (coerce-query "")})]})
 
 (def-event-fx new-query-executed [{:keys [db]} [_ {:keys [dsid query]}]]
-  {:fx [[::fx/open-query-editor {:source (core/get-source db dsid)
-                                 :query (coerce-query query)}]]})
+  {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
+                               :query (coerce-query query)})]})
 
 (def-event-fx query-executed [{:keys [db]} [_ {:keys [dsid query path]}]]
   (let [source (or (core/get-source db dsid)
                    ;; It might be better to use last used source or offer choice
                    (first (vals (::state/sources db))))
         !query-atom (nth (::state/taps db) (first path))]
-    {:fx [[::fx/execute-query {:source source
-                               :query (coerce-query query)
-                               :!query-atom !query-atom}]]}))
+    {:fx [(fx/execute-query {:source source
+                             :query (coerce-query query)
+                             :!query-atom !query-atom})]}))
 
 (def-event-db tap-submitted [db [_ value]]
   (core/append-tap db value))
