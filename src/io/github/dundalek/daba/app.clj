@@ -21,27 +21,12 @@
    ::fx/execute-query #'fx/execute-query
    ::fx/execute-query-map #'fx/execute-query-map})
 
-(def event
-  {::event/source-added (mf/db-handler #'event/source-added)
-   ::event/database-inspected (mf/fx-handler #'event/database-inspected)
-   ::event/tables-inspected (mf/fx-handler #'event/tables-inspected)
-   ::event/columns-inspected (mf/fx-handler #'event/columns-inspected)
-   ::event/table-data-inspected (mf/fx-handler #'event/table-data-inspected)
-   ::event/datagrid-query-changed (mf/fx-handler #'event/datagrid-query-changed)
-   ::event/query-editor-opened (mf/fx-handler #'event/query-editor-opened)
-   ::event/new-query-executed (mf/fx-handler #'event/new-query-executed)
-   ::event/query-executed (mf/fx-handler #'event/query-executed)
-   ::event/tap-submitted (mf/db-handler #'event/tap-submitted)
-   ::event/removable-tap-submitted (mf/db-handler #'event/removable-tap-submitted)
-   ::event/tap-removed (mf/db-handler #'event/tap-removed)
-   ::event/datasource-input-opened (mf/db-handler #'event/datasource-input-opened)})
-
 (defonce !app-db (atom state/default-state))
 
 (alter-var-root #'frame/*frame*
                 (constantly
                  (mf/make-frame
-                  {:event event
+                  {:event @mf/!event-registry
                    :fx fx
                    :app-db !app-db})))
 
@@ -101,6 +86,8 @@
                 ::state/sources
                 first
                 key))
+
+  (dispatch (event/database-inspected dsid))
 
   (dispatch [::event/database-inspected dsid])
 

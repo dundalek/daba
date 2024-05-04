@@ -1,5 +1,7 @@
 (ns io.github.dundalek.daba.internal.miniframe)
 
+(defonce !event-registry (atom {}))
+
 (defn- run-effects! [ctx frame]
   (let [{:keys [app-db] effects :fx} frame
         {:keys [db fx]} ctx]
@@ -26,3 +28,28 @@
 
 (defn make-frame [{:keys [events fx app-db] :as frame-map}]
   frame-map)
+
+(defmacro def-handler
+  {:clj-kondo/lint-as 'clojure.core/defn}
+  [handler fn-name & args]
+  (let [single-arity? (vector? (first args))
+        event-kw (keyword (str *ns*) (str fn-name))
+        handler-body (if single-arity?
+                       args
+                       (last args))]
+    ;; TODO: maybe call the action creator fn if it has body - could be used for validation
+    `(do
+       (defn ~fn-name
+         ([value#] [~event-kw value#])
+         ~handler-body)
+       (swap! ~`!event-registry assoc ~event-kw (~handler ~fn-name)))))
+
+(defmacro def-event-db
+  {:clj-kondo/lint-as 'clojure.core/defn}
+  [& args]
+  `(def-handler db-handler ~@args))
+
+(defmacro def-event-fx
+  {:clj-kondo/lint-as 'clojure.core/defn}
+  [& args]
+  `(def-handler fx-handler ~@args))
