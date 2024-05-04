@@ -4,7 +4,40 @@
    [next.jdbc.datafy]
    [next.jdbc.result-set :as rs])
   (:import
-   (java.sql ResultSet)))
+   (java.sql PreparedStatement ResultSet)))
+
+;; === Beginning of hack
+
+;; We cannot override result set builder to include columns metadata when using
+;; jdbc/plan to realize subset of results. This is a hack reaching into private internals.
+;; In `reduce-with-columns-meta` we push a binding frame, run the reduction which
+;; calls `rs/reduce-stmt` that has access to ResultSet, and read out the columns meta.
+;; We set columns binding by replacing `rs/reduce-stmt` with `reuce-stmt-with-columns-hack`
+;; which extracts the column names and sets them on the binding frame.
+
+(def ^:dynamic *columns* nil)
+
+(defn reduce-with-columns-meta [reducible xform]
+  (binding [*columns* true]
+    (-> (with-meta
+          (->> reducible
+               (into [] xform))
+          {:columns *columns*}))))
+
+(defn reduce-stmt-with-columns-hack
+  [^PreparedStatement stmt f init opts]
+  (if-let [rs (#'rs/stmt->result-set stmt opts)]
+    (do
+      (when *columns*
+        (let [rsmeta (.getMetaData rs)
+              columns (rs/get-column-names rsmeta opts)]
+          (set! *columns* columns)))
+      (#'rs/reduce-result-set rs f init opts))
+    (f init {:next.jdbc/update-count (.getUpdateCount stmt)})))
+
+(alter-var-root #'rs/reduce-stmt (constantly reduce-stmt-with-columns-hack))
+
+;; === End of hack
 
 ;; Delegates to passed row-builder to create rows, wraps final result with passed metadata
 (defrecord CustomResultSetBuilder [row-builder ^ResultSet metadata]

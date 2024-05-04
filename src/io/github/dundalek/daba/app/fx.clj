@@ -7,6 +7,7 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [next.jdbc :as jdbc]
+   [next.jdbc.result-set :as rs]
    [next.jdbc.sql :as sql]
    [portal.viewer :as pv]))
 
@@ -35,13 +36,15 @@
   (let [{::state/keys [ds dsid]} source
         results (if (str/blank? statement)
                   []
-                  ;; This is inefficient because whole result set will be realized,
-                  ;; but at least that will be on JVM side and won't bog down the browser.
-                  ;; Consider using jdbc/plan to realize less things as an optimization.
-                  (into []
-                        (comp (drop offset)
-                              (take limit))
-                        (jdbc/execute! ds [statement] {:builder-fn dbc/as-maps-with-columns-meta})))
+                  ;; We want to prevent bringing the viewer down in case there is a select with millions of rows.
+                  ;; We still iterate over them on the client runtime, but at least do not realize everything.
+                  ;; Using plan with reductinos is more efficient than execute! which realizes all results.
+                  ;; Maybe consider a heuristic and only try to limit SELECT queries.
+                  (dbc/reduce-with-columns-meta
+                   (jdbc/plan ds [statement] {:builder-fn rs/as-maps})
+                   (comp (drop offset)
+                         (take limit)
+                         (map #(rs/datafiable-row % ds {})))))
         {:keys [columns]} (meta results)]
     (with-meta
       results

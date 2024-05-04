@@ -88,6 +88,8 @@
 
   (inspect-database! db-spec)
 
+  (p/docs)
+
   (dbc/get-schemas ds)
 
   (dbc/get-tables ds "main")
@@ -107,16 +109,17 @@
 
   (dispatch [::event/query-editor-opened dsid])
 
-  (dispatch [::event/query-executed dsid "select * from Artist limit 100"])
-  (dispatch [::event/query-executed dsid "select count(*) from Artist"])
+  (dispatch [::event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}])
+  (dispatch [::event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}])
 
   (->> (dbc/get-columns ds "pushes")
        count)
 
-  (p/docs)
-
   (->> (sql/find-by-keys ds "Album" :all)
        count)
+
+  (doseq [i (range 5)]
+    (tap> (str "Item " i)))
 
   (tap>
    (pv/default
@@ -138,4 +141,3 @@
     left join Album using (ArtistId)
     group by Artist.ArtistId
     order by AlbumCount desc"]))
-
