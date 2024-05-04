@@ -167,21 +167,16 @@
                    :flex-direction "row"
                    :align-items "flex-start"}}
      [:div {:style {:flex-grow 1}}
-      [ins/inspector value]]
+      [ins/inspector
+       (with-meta
+         value
+         (-> value meta ::removable-item :wrapped-meta))]]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    ;; last segment seems to be extra 0, dropping it
-                   (dispatch [::event/tap-removed (butlast path)]))}
+                   (dispatch [::event/tap-removed path]))}
       "X"]]))
-
-(defn removable-list-component [coll]
-  [ins/inspector
-   (for [item coll]
-     (with-meta
-       [::removable-item
-        item]
-       {::pv/default ::pv/hiccup}))])
 
 (defn table-item? [value]
   (and (map? value)
@@ -191,11 +186,6 @@
  {:name ::removable-item
   :predicate (constantly true)
   :component removable-item-component})
-
-(p/register-viewer!
- {:name ::removable-list
-  :predicate sequential?
-  :component removable-list-component})
 
 (p/register-viewer!
  {:name ::table-item

@@ -1,8 +1,10 @@
 (ns io.github.dundalek.daba.app.event
   (:require
+   [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.state :as state]
-   [io.github.dundalek.daba.app.fx :as-alias fx]))
+   [io.github.dundalek.daba.app.fx :as-alias fx]
+   [portal.viewer :as-alias pv]))
 
 (def default-page-size 100)
 
@@ -73,7 +75,18 @@
                                :!query-atom !query-atom}]]}))
 
 (defn tap-submitted [db [_ value]]
-  (update db ::state/taps conj value))
+  (core/append-tap db value))
+
+(defn removable-tap-submitted [db [_ value]]
+  (let [wrap-with-meta (fn [value]
+                         (with-meta
+                           value
+                           {::pv/default ::dv/removable-item
+                            ::dv/removable-item {:wrapped-meta (meta value)}}))
+        wrapped (if (instance? clojure.lang.IAtom value)
+                  (swap! value wrap-with-meta)
+                  (wrap-with-meta value))]
+    (core/append-tap db wrapped)))
 
 (defn tap-removed [db [_ path]]
   (assert (= (count path) 1) "Only supporting top level list for now")

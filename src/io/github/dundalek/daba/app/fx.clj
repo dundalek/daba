@@ -14,7 +14,7 @@
 ;; Helpers
 
 (defn submit [value]
-  (frame/dispatch [::event/tap-submitted value]))
+  (frame/dispatch [::event/removable-tap-submitted value]))
 
 (defn- execute-structured-query [source query-map]
   (let [{::state/keys [ds dsid]} source

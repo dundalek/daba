@@ -32,6 +32,7 @@
    ::event/new-query-executed (mf/fx-handler #'event/new-query-executed)
    ::event/query-executed (mf/fx-handler #'event/query-executed)
    ::event/tap-submitted (mf/db-handler #'event/tap-submitted)
+   ::event/removable-tap-submitted (mf/db-handler #'event/removable-tap-submitted)
    ::event/tap-removed (mf/db-handler #'event/tap-removed)})
 
 (defonce !app-db (atom state/default-state))
@@ -59,10 +60,9 @@
 (defonce !taps
   (let [!taps (atom nil)
         watcher (fn [_ _ _ new-state]
-                  (reset! !taps
-                          (with-meta
-                            (::state/taps new-state)
-                            {::pv/default ::dv/removable-list})))]
+                  (let [new-taps (::state/taps new-state)]
+                    (when-not (identical? @!taps new-taps)
+                      (reset! !taps new-taps))))]
     ;; Poor man's subscription
     (add-watch !app-db ::taps watcher)
     (watcher nil nil nil @!app-db)
