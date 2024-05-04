@@ -1,0 +1,3 @@
+{:hooks {:analyze-call
+         {io.github.dundalek.daba.internal.miniframe/def-event-db hooks.miniframe/def-event-db
+          io.github.dundalek.daba.internal.miniframe/def-event-fx hooks.miniframe/def-event-fx}}}

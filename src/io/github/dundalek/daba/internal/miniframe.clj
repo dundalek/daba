@@ -31,7 +31,6 @@
   frame-map)
 
 (defmacro def-handler
-  {:clj-kondo/lint-as 'clojure.core/defn}
   [handler fn-name & args]
   (let [single-arity? (vector? (first args))
         handler-kw (keyword (str *ns*) (str fn-name))
@@ -46,12 +45,10 @@
        (swap! ~`!event-registry assoc ~handler-kw (~handler ~fn-name)))))
 
 (defmacro def-event-db
-  {:clj-kondo/lint-as 'clojure.core/defn}
   [& args]
   `(def-handler db-handler ~@args))
 
 (defmacro def-event-fx
-  {:clj-kondo/lint-as 'clojure.core/defn}
   [& args]
   `(def-handler fx-handler ~@args))
 
