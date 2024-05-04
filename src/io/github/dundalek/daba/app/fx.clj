@@ -6,6 +6,7 @@
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
+   [io.github.dundalek.daba.internal.miniframe :refer [def-fx]]
    [next.jdbc :as jdbc]
    [next.jdbc.result-set :as rs]
    [next.jdbc.sql :as sql]
@@ -53,17 +54,7 @@
        ::dv/query-editor {:query query}
        ::dv/dsid dsid})))
 
-;; Effects
-
-(defn inspect-columns [{:keys [source table-name]}]
-  (let [{::state/keys [ds dsid]} source
-        columns (dbc/get-columns ds table-name)]
-    (submit
-     (-> columns
-         (pv/default ::dv/column-list)
-         (vary-meta assoc ::dv/dsid dsid)))))
-
-(defn inspect-tables [{:keys [source schema-name]}]
+(defn inspect-tables! [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source
         tables (dbc/get-tables ds schema-name)]
     (submit
@@ -71,7 +62,20 @@
          (pv/default ::dv/table-list)
          (vary-meta assoc ::dv/dsid dsid)))))
 
-(defn inspect-database [source]
+;; Effects
+
+(def-fx inspect-columns [{:keys [source table-name]}]
+  (let [{::state/keys [ds dsid]} source
+        columns (dbc/get-columns ds table-name)]
+    (submit
+     (-> columns
+         (pv/default ::dv/column-list)
+         (vary-meta assoc ::dv/dsid dsid)))))
+
+(def-fx inspect-tables [arg]
+  (inspect-tables! arg))
+
+(def-fx inspect-database [source]
   (let [{::state/keys [ds dsid]} source
         schemas (dbc/get-schemas ds)]
     (if (seq schemas)
@@ -79,25 +83,25 @@
        (-> schemas
            (pv/default ::dv/schema-list)
            (vary-meta assoc ::dv/dsid dsid)))
-      (inspect-tables {:source source
-                       :schema-name nil}))))
+      (inspect-tables! {:source source
+                        :schema-name nil}))))
 
-(defn open-query-editor [{:keys [source query]}]
+(def-fx open-query-editor [{:keys [source query]}]
   (submit
    (atom
     (execute-string-query source query))))
 
-(defn execute-query [{:keys [source query !query-atom]}]
+(def-fx execute-query [{:keys [source query !query-atom]}]
   ;; Prone to race condition, consider some kind of queue in the future
   (reset! !query-atom
           (execute-string-query source query)))
 
-(defn inspect-table-data [{:keys [source query-map]}]
+(def-fx inspect-table-data [{:keys [source query-map]}]
   (submit
    (atom
     (execute-structured-query source query-map))))
 
-(defn execute-query-map [{:keys [source query-map !query-atom]}]
+(def-fx execute-query-map [{:keys [source query-map !query-atom]}]
   ;; Prone to race condition, consider some kind of queue in the future
   (reset! !query-atom
           (execute-structured-query source query-map)))

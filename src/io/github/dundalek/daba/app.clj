@@ -3,7 +3,7 @@
    [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
-   [io.github.dundalek.daba.app.fx :as fx]
+   [io.github.dundalek.daba.app.fx]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [io.github.dundalek.daba.internal.miniframe :as mf]
@@ -12,22 +12,13 @@
    [portal.api :as p]
    [portal.viewer :as pv]))
 
-(def fx
-  {::fx/inspect-database #'fx/inspect-database
-   ::fx/inspect-tables #'fx/inspect-tables
-   ::fx/inspect-columns #'fx/inspect-columns
-   ::fx/inspect-table-data #'fx/inspect-table-data
-   ::fx/open-query-editor #'fx/open-query-editor
-   ::fx/execute-query #'fx/execute-query
-   ::fx/execute-query-map #'fx/execute-query-map})
-
 (defonce !app-db (atom state/default-state))
 
 (alter-var-root #'frame/*frame*
                 (constantly
                  (mf/make-frame
                   {:event @mf/!event-registry
-                   :fx fx
+                   :fx @mf/!fx-registry
                    :app-db !app-db})))
 
 (def dispatch frame/dispatch)
@@ -97,7 +88,7 @@
 
   (dispatch [::event/columns-inspected dsid "pushes"])
 
-  (dispatch [::event/query-editor-opened dsid])
+  (dispatch (event/query-editor-opened dsid))
 
   (dispatch [::event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}])
   (dispatch [::event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}])
