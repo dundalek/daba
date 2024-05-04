@@ -12,8 +12,9 @@
 (defn tr [[message]]
   message)
 
-(defn dispatch [event]
-  (rpc/call `frame/dispatch event))
+(defn dispatch [event-sym & args]
+  (rpc/call `frame/dispatch
+            (into [(keyword event-sym)] args)))
 
 (defn textarea [props]
    ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
@@ -47,10 +48,10 @@
         {:keys [limit offset]} query-map
         path (-> (ins/use-context) :path butlast)
         paginate (fn [new-offset]
-                   (dispatch [::event/datagrid-query-changed
-                              {:dsid dsid
-                               :path path
-                               :query-map (assoc query-map :offset new-offset)}]))]
+                   (dispatch `event/datagrid-query-changed
+                             {:dsid dsid
+                              :path path
+                              :query-map (assoc query-map :offset new-offset)}))]
     [:div
      [ins/inspector
       (with-meta
@@ -67,7 +68,7 @@
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch [::event/tables-inspected dsid table-schem]))}
+                   (dispatch `event/tables-inspected dsid table-schem))}
       (tr ["tables"])]]))
 
 (defn schema-list-component [value]
@@ -95,12 +96,12 @@
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch [::event/table-data-inspected dsid table-name]))}
+                   (dispatch `event/table-data-inspected dsid table-name))}
       (tr ["data"])]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch [::event/columns-inspected dsid table-name]))}
+                   (dispatch `event/columns-inspected dsid table-name))}
       (tr ["columns"])]]))
 
 (defn table-list-component [value]
@@ -132,10 +133,10 @@
         {:keys [path]} (ins/use-context)
         {::keys [dsid]} (meta value)
         execute-query (fn [q]
-                        (dispatch [::event/query-executed
-                                   {:path (butlast path)
-                                    :dsid dsid
-                                    :query q}]))]
+                        (dispatch `event/query-executed
+                                  {:path (butlast path)
+                                   :dsid dsid
+                                   :query q}))]
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
@@ -144,8 +145,8 @@
                            (let [statement (-> ev .-target .-query .-value)]
                              (if (= (-> ev .-nativeEvent .-submitter .-name) "execute")
                                (execute-query {:statement statement})
-                               (dispatch [::event/new-query-executed {:dsid dsid
-                                                                      :query statement}]))))
+                               (dispatch `event/new-query-executed {:dsid dsid
+                                                                    :query statement}))))
               :style {:display "flex"
                       :gap 6}}
        [textarea {:name "query"
@@ -182,7 +183,7 @@
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    ;; last segment seems to be extra 0, dropping it
-                   (dispatch [::event/tap-removed path]))}
+                   (dispatch `event/tap-removed path))}
       "X"]]))
 
 (defn table-item? [value]
