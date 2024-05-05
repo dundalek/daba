@@ -29,29 +29,29 @@
 
 ;; Events
 
-(def-event-db source-added [db [_ {:keys [dsid source]}]]
+(def-event-db source-added [db {:keys [dsid source]}]
   (update db ::state/sources assoc dsid source))
 
 (def-event-fx database-inspected
-  ([{:keys [db]} [_ dsid]]
+  ([{:keys [db]} dsid]
    {:fx [(fx/inspect-database (core/get-source db dsid))]}))
 
-(def-event-fx tables-inspected [{:keys [db]} [_ {:keys [dsid schema]}]]
+(def-event-fx tables-inspected [{:keys [db]} {:keys [dsid schema]}]
   {:fx [(fx/inspect-tables {:source (core/get-source db dsid)
                             :schema-name schema})]})
 
-(def-event-fx columns-inspected [{:keys [db]} [_ {:keys [dsid table]}]]
+(def-event-fx columns-inspected [{:keys [db]} {:keys [dsid table]}]
   {:fx [(fx/inspect-columns {:source (core/get-source db dsid)
                              :table-name table})]})
 
-(def-event-fx table-data-inspected [{:keys [db]} [_ {:keys [dsid table]}]]
+(def-event-fx table-data-inspected [{:keys [db]} {:keys [dsid table]}]
   {:fx [(fx/inspect-table-data {:source (core/get-source db dsid)
                                 :query-map {:table table
                                             :where :all
                                             :limit default-page-size
                                             :offset 0}})]})
 
-(def-event-fx datagrid-query-changed [{:keys [db]} [_ {:keys [dsid path query-map]}]]
+(def-event-fx datagrid-query-changed [{:keys [db]} {:keys [dsid path query-map]}]
   (assert (= (count path) 1) "Only supporting top level list for now")
   (let [source (core/get-source db dsid)
         !query-atom (nth (::state/taps db) (first path))]
@@ -59,15 +59,15 @@
                                  :query-map query-map
                                  :!query-atom !query-atom})]}))
 
-(def-event-fx query-editor-opened [{:keys [db]} [_ dsid]]
+(def-event-fx query-editor-opened [{:keys [db]} dsid]
   {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
                                :query (coerce-query "")})]})
 
-(def-event-fx new-query-executed [{:keys [db]} [_ {:keys [dsid query]}]]
+(def-event-fx new-query-executed [{:keys [db]} {:keys [dsid query]}]
   {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
                                :query (coerce-query query)})]})
 
-(def-event-fx query-executed [{:keys [db]} [_ {:keys [dsid query path]}]]
+(def-event-fx query-executed [{:keys [db]} {:keys [dsid query path]}]
   (let [source (or (core/get-source db dsid)
                    ;; It might be better to use last used source or offer choice
                    (first (vals (::state/sources db))))
@@ -76,10 +76,10 @@
                              :query (coerce-query query)
                              :!query-atom !query-atom})]}))
 
-(def-event-db tap-submitted [db [_ value]]
+(def-event-db tap-submitted [db value]
   (core/append-tap db value))
 
-(def-event-db removable-tap-submitted [db [_ value]]
+(def-event-db removable-tap-submitted [db value]
   (let [wrap-with-meta (fn [value]
                          (with-meta
                            value
@@ -90,7 +90,7 @@
                   (wrap-with-meta value))]
     (core/append-tap db wrapped)))
 
-(def-event-db tap-removed [db [_ path]]
+(def-event-db tap-removed [db path]
   (assert (= (count path) 1) "Only supporting top level list for now")
   (update db ::state/taps
           (fn [coll]

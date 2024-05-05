@@ -21,10 +21,11 @@
 
 (defn dispatch [frame event]
   (let [{:keys [app-db] events :event} frame
-        ctx {:db @app-db}
-        handler (get events (first event))]
+        [event-name arg] event
+        handler (get events event-name)
+        ctx {:db @app-db}]
     (-> ctx
-        (handler event)
+        (handler arg)
         (run-effects! frame))))
 
 (defn make-frame [{:keys [events fx app-db] :as frame-map}]
