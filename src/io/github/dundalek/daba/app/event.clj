@@ -105,11 +105,11 @@
   (removable-tap-submitted
    db
    (atom
-    (with-meta {}
-      {::pv/default ::dv/new-datasource}))))
+    (with-meta {:db-spec ""}
+      {::pv/default ::dv/datasource}))))
 
 (def-event-db datasource-input-changed [db {:keys [path value]}]
-  (let [new-tap {:value value}]
+  (let [new-tap {:db-spec value}]
     (if-some [top-level-atom (when (= (count path) 1)
                                (let [tap (nth (::state/taps db) (first path))]
                                  (when (instance? clojure.lang.IAtom tap)
@@ -122,6 +122,6 @@
       (removable-tap-submitted
        db
        (atom
-        (with-meta {:value value}
-          {::pv/default ::dv/new-datasource}))))))
+        (with-meta new-tap
+          {::pv/default ::dv/datasource}))))))
 

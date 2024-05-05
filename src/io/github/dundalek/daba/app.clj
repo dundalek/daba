@@ -54,10 +54,10 @@
 
 (comment
   (def dsid "jdbc:duckdb:tmp/duck-data") ; on disk
-  (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def ds (jdbc/get-datasource dsid))
 
   (do
+    (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
     (p/open {:value !taps
              :on-load load-viewers})
     (add-tap #'submit))
@@ -111,7 +111,8 @@
 
     ::pv/inspector))
 
-  (tap> "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
+  (tap> ["jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"])
+
   (tap> "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite_")
 
   (dispatch (event/new-query-executed

@@ -190,18 +190,24 @@
   (and (map? value)
        (string? (:table-name value))))
 
-(defn new-datasource-component [value]
+(defn datasource? [value]
+  (or (string? value)
+      (and (map? value)
+           (contains? value :db-spec))))
+
+(defn datasource-component [value]
   (let [default-value (or (cond
                             (string? value) value
-                            (map? value) (:value value))
+                            (map? value) (:db-spec value))
                           "")
         {:keys [path]} (ins/use-context)]
     [:form {:on-submit (fn [ev]
                          (.preventDefault ev)
                          (let [datasource (-> ev .-target .-datasource .-value)]
                            (when (not= datasource default-value)
-                             (dispatch `event/datasource-input-changed {:path path
-                                                                        :value datasource}))
+                             (dispatch `event/datasource-input-changed
+                                       {:path path
+                                        :value datasource}))
                            (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
                              (dispatch `event/query-editor-opened datasource)
                              (dispatch `event/database-inspected datasource))))
@@ -218,10 +224,28 @@
                :name "query"}
       (tr ["query"])]]))
 
+(defn datasource-list-component [value]
+  [ins/inspector
+   (for [item value]
+     (if (map? value)
+       (with-meta
+         item
+         {::pv/default ::datasource})
+       (with-meta
+         [::datasource item]
+         {::pv/default ::pv/hiccup})))])
+
 (p/register-viewer!
- {:name ::new-datasource
-  :predicate (constantly true)
-  :component new-datasource-component})
+ {:name ::datasource
+  :predicate datasource?
+  :component datasource-component})
+
+(p/register-viewer!
+ {:name ::datasource-list
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (datasource? (first value))))
+  :component datasource-list-component})
 
 (p/register-viewer!
  {:name ::removable-item
