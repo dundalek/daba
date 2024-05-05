@@ -34,14 +34,17 @@
   [handler fn-name & args]
   (let [single-arity? (vector? (first args))
         handler-kw (keyword (str *ns*) (str fn-name))
-        handler-body (if single-arity?
-                       args
-                       (last args))]
-    ;; TODO: maybe call the action creator fn if it has body - could be used for validation
+        [bindings & body] (if single-arity?
+                            args
+                            (last args))
+        ;; TODO: maybe call the action creator fn if it has body - could be used for validation
+        event-creator (if (= (second bindings) '_)
+                        `([] [~handler-kw nil])
+                        `([value#] [~handler-kw value#]))]
     `(do
        (defn ~fn-name
-         ([value#] [~handler-kw value#])
-         ~handler-body)
+         ~event-creator
+         (~bindings ~@body))
        (swap! ~`!event-registry assoc ~handler-kw (~handler ~fn-name)))))
 
 (defmacro def-event-db

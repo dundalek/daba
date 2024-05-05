@@ -80,9 +80,7 @@
 
   (dispatch (event/database-inspected dsid))
 
-  (dispatch (event/database-inspected dsid))
-
-  (dispatch (event/datasource-input-opened nil))
+  (dispatch (event/datasource-input-opened))
 
   (dispatch [::event/tables-inspected dsid "main"])
 
