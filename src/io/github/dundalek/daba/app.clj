@@ -26,13 +26,14 @@
 (p/register! #'frame/dispatch)
 
 (defn inspect-database! [db-spec]
-  (let [dsid (str (gensym "dsid-"))
-        ds (jdbc/get-datasource db-spec)
-        source {::state/ds ds
-                ::state/db-spec db-spec
-                ::state/dsid dsid}]
-    (dispatch (event/source-added {:dsid dsid :source source}))
-    (dispatch (event/database-inspected dsid))))
+  (dispatch (event/database-inspected db-spec))
+  #_(let [dsid (str (gensym "dsid-"))
+          ds (jdbc/get-datasource db-spec)
+          source {::state/ds ds
+                  ::state/db-spec db-spec
+                  ::state/dsid dsid}]
+      (dispatch (event/source-added {:dsid dsid :source source}))
+      (dispatch (event/database-inspected dsid))))
 
 (defonce !taps
   (let [!taps (atom nil)
