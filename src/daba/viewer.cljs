@@ -203,14 +203,14 @@
         {:keys [path]} (ins/use-context)]
     [:form {:on-submit (fn [ev]
                          (.preventDefault ev)
-                         (let [datasource (-> ev .-target .-datasource .-value)]
-                           (when (not= datasource default-value)
-                             (dispatch `event/datasource-input-changed
-                                       {:path path
-                                        :value datasource}))
-                           (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
-                             (dispatch `event/query-editor-opened datasource)
-                             (dispatch `event/database-inspected datasource))))
+                         (let [datasource (-> ev .-target .-datasource .-value)
+                               action (-> ev .-nativeEvent .-submitter .-name)
+                               payload {:path path
+                                        :value datasource
+                                        :action action}]
+                           (if (= datasource default-value)
+                             (dispatch `event/datasource-input-submitted payload)
+                             (dispatch `event/datasource-input-changed payload))))
             :style {:display "flex"
                     :gap 6}}
      [textarea {:name "datasource"

@@ -108,20 +108,30 @@
     (with-meta {:db-spec ""}
       {::pv/default ::dv/datasource}))))
 
-(def-event-db datasource-input-changed [db {:keys [path value]}]
-  (let [new-tap {:db-spec value}]
-    (if-some [top-level-atom (when (= (count path) 1)
-                               (let [tap (nth (::state/taps db) (first path))]
-                                 (when (instance? clojure.lang.IAtom tap)
-                                   tap)))]
-      (do (swap! top-level-atom
-                 (fn [old-value]
-                   (with-meta new-tap
-                     (meta old-value))))
-          db)
-      (removable-tap-submitted
-       db
-       (atom
-        (with-meta new-tap
-          {::pv/default ::dv/datasource}))))))
+(def-event-fx datasource-input-submitted [ctx {:keys [value action]}]
+  (assert (#{"query" "schema"} action))
+  (if (= action "query")
+    (query-editor-opened ctx value)
+    (database-inspected ctx value)))
+
+(def-event-fx datasource-input-changed [{:keys [db] :as ctx} {:keys [path value] :as params}]
+  (let [new-tap {:db-spec value}
+        db (if-some [top-level-atom (when (= (count path) 1)
+                                      (let [tap (nth (::state/taps db) (first path))]
+                                        (when (instance? clojure.lang.IAtom tap)
+                                          tap)))]
+             (do (swap! top-level-atom
+                        (fn [old-value]
+                          (with-meta new-tap
+                            (meta old-value))))
+                 db)
+             (removable-tap-submitted
+              db
+              (atom
+               (with-meta new-tap
+                 {::pv/default ::dv/datasource}))))]
+    (-> ctx
+        (assoc :db db)
+        (datasource-input-submitted params))))
+
 
