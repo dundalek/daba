@@ -3,6 +3,8 @@
 (defonce !event-registry (atom {}))
 (defonce !fx-registry (atom {}))
 
+(def ^:dynamic *queued-fx* ::unbound)
+
 (defn- run-effects! [ctx frame]
   (let [{:keys [app-db] effects :fx} frame
         {:keys [db fx]} ctx]
@@ -13,8 +15,10 @@
         (fx-handler arg)))))
 
 (defn db-handler [handler]
-  (fn [ctx event]
-    (update ctx :db handler event)))
+  (fn [ctx arg]
+    (let [db (handler (:db ctx) arg)]
+      (cond-> ctx
+        (some? db) (assoc :db db)))))
 
 (defn fx-handler [handler]
   handler)
@@ -24,9 +28,12 @@
         [event-name arg] event
         handler (get events event-name)
         ctx {:db @app-db}]
-    (-> ctx
-        (handler arg)
-        (run-effects! frame))))
+    (binding [*queued-fx* nil]
+      (let [ctx (handler ctx arg)
+            f *queued-fx*]
+        (run-effects! ctx frame)
+        (when (some? f)
+          (f))))))
 
 (defn make-frame [{:keys [events fx app-db] :as frame-map}]
   frame-map)
@@ -68,3 +75,14 @@
          ([ignored# ~(first bindings)] ~@body))
        (swap! ~`!fx-registry assoc ~handler-kw
               (fn [arg#] (~fn-name nil arg#))))))
+
+(defn queue-fx! [f]
+  (when (some? *queued-fx*)
+    (if (*queued-fx* ::unbound)
+      (throw "Trying to queue effect outside of handler scope")
+      (throw "Effect already bound, can only queue one fx inside a handler")))
+  (set! *queued-fx* f)
+  nil)
+
+(defmacro fx! [& body]
+  `(queue-fx! (fn [] ~@body)))

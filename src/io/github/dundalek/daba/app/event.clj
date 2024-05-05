@@ -4,7 +4,7 @@
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
-   [io.github.dundalek.daba.internal.miniframe :refer [def-event-db def-event-fx]]
+   [io.github.dundalek.daba.internal.miniframe :refer [def-event-db def-event-fx fx!]]
    [portal.viewer :as-alias pv]))
 
 (def default-page-size 100)
@@ -44,12 +44,16 @@
   {:fx [(fx/inspect-columns {:source (core/get-source db dsid)
                              :table-name table})]})
 
-(def-event-fx table-data-inspected [{:keys [db]} {:keys [dsid table]}]
-  {:fx [(fx/inspect-table-data {:source (core/get-source db dsid)
-                                :query-map {:table table
-                                            :where :all
-                                            :limit default-page-size
-                                            :offset 0}})]})
+(def-event-db table-data-inspected [db {:keys [dsid table]}]
+  (let [source (core/get-source db dsid)
+        query-map {:table table
+                   :where :all
+                   :limit default-page-size
+                   :offset 0}]
+    (fx!
+     (fx/submit
+      (atom
+       (fx/execute-structured-query source query-map))))))
 
 (def-event-fx datagrid-query-changed [{:keys [db]} {:keys [dsid path query-map]}]
   (assert (= (count path) 1) "Only supporting top level list for now")

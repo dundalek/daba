@@ -14,10 +14,10 @@
 
 ;; Helpers
 
-(defn- submit [value]
+(defn submit [value]
   (frame/dispatch [::event/removable-tap-submitted value]))
 
-(defn- execute-structured-query [source query-map]
+(defn execute-structured-query [source query-map]
   (let [{::state/keys [ds dsid]} source
         {:keys [table where limit offset]} query-map
         results (sql/find-by-keys ds table where
@@ -95,11 +95,6 @@
   ;; Prone to race condition, consider some kind of queue in the future
   (reset! !query-atom
           (execute-string-query source query)))
-
-(def-fx inspect-table-data [{:keys [source query-map]}]
-  (submit
-   (atom
-    (execute-structured-query source query-map))))
 
 (def-fx execute-query-map [{:keys [source query-map !query-atom]}]
   ;; Prone to race condition, consider some kind of queue in the future
