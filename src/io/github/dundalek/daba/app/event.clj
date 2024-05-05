@@ -99,7 +99,7 @@
               (meta coll)))))
 
 (def-event-db datasource-input-opened [db _]
-  (core/append-tap
+  (removable-tap-submitted
    db
    (with-meta {}
      {::pv/default ::dv/new-datasource})))

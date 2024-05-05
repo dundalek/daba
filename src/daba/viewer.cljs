@@ -96,13 +96,13 @@
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
-      (tr ["data"])]
+                   (dispatch `event/columns-inspected {:dsid dsid :table table-name}))}
+      (tr ["columns"])]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/columns-inspected {:dsid dsid :table table-name}))}
-      (tr ["columns"])]]))
+                   (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
+      (tr ["data"])]]))
 
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
@@ -192,13 +192,15 @@
 
 (defn new-datasource-component [_]
   [:form {:on-submit (fn [ev]
-                       (.preventDefault ev))
-                       ; (let [datasource (-> ev .-target .-datasource .-value)]
-                       ;   (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
+                       (.preventDefault ev)
+                       (let [datasource (-> ev .-target .-datasource .-value)]
+                         (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
+                           (dispatch `event/query-editor-opened datasource)
+                           (dispatch `event/database-inspected datasource))))
           :style {:display "flex"
                   :gap 6}}
    [textarea {:name "datasource"
-              :placeholder "connection string e.g. postgres://user@host:port/dbname"
+              :placeholder "connection string like postgres://user@host:port/dbname"
               :style {:flex-grow 1}}]
    [:button {:type "submit"
              :name "schema"}
