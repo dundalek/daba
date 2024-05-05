@@ -31,7 +31,7 @@
         source {::state/ds ds
                 ::state/db-spec db-spec
                 ::state/dsid dsid}]
-    (dispatch [::event/source-added dsid source])
+    (dispatch (event/source-added {:dsid dsid :source source}))
     (dispatch (event/database-inspected dsid))))
 
 (defonce !taps
@@ -82,9 +82,9 @@
 
   (dispatch (event/datasource-input-opened))
 
-  (dispatch [::event/tables-inspected dsid "main"])
+  (dispatch (event/tables-inspected {:dsid dsid :schema "main"}))
 
-  (dispatch [::event/columns-inspected dsid "pushes"])
+  (dispatch (event/columns-inspected {:dsid dsid :table "pushes"}))
 
   (dispatch (event/query-editor-opened dsid))
 
@@ -114,9 +114,10 @@
 
     ::pv/inspector))
 
-  (dispatch [::event/query-executed dsid
-             "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount
+  (dispatch (event/new-query-executed
+             {:dsid dsid
+              :query "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount
     from Artist
     left join Album using (ArtistId)
     group by Artist.ArtistId
-    order by AlbumCount desc"]))
+    order by AlbumCount desc"})))

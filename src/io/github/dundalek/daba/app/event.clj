@@ -29,24 +29,24 @@
 
 ;; Events
 
-(def-event-db source-added [db [_ dsid source]]
+(def-event-db source-added [db [_ {:keys [dsid source]}]]
   (update db ::state/sources assoc dsid source))
 
 (def-event-fx database-inspected
   ([{:keys [db]} [_ dsid]]
    {:fx [(fx/inspect-database (core/get-source db dsid))]}))
 
-(def-event-fx tables-inspected [{:keys [db]} [_ dsid schema-name]]
+(def-event-fx tables-inspected [{:keys [db]} [_ {:keys [dsid schema]}]]
   {:fx [(fx/inspect-tables {:source (core/get-source db dsid)
-                            :schema-name schema-name})]})
+                            :schema-name schema})]})
 
-(def-event-fx columns-inspected [{:keys [db]} [_ dsid table-name]]
+(def-event-fx columns-inspected [{:keys [db]} [_ {:keys [dsid table]}]]
   {:fx [(fx/inspect-columns {:source (core/get-source db dsid)
-                             :table-name table-name})]})
+                             :table-name table})]})
 
-(def-event-fx table-data-inspected [{:keys [db]} [_ dsid table-name]]
+(def-event-fx table-data-inspected [{:keys [db]} [_ {:keys [dsid table]}]]
   {:fx [(fx/inspect-table-data {:source (core/get-source db dsid)
-                                :query-map {:table table-name
+                                :query-map {:table table
                                             :where :all
                                             :limit default-page-size
                                             :offset 0}})]})

@@ -68,7 +68,7 @@
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/tables-inspected dsid table-schem))}
+                   (dispatch `event/tables-inspected {:dsid dsid :schema table-schem}))}
       (tr ["tables"])]]))
 
 (defn schema-list-component [value]
@@ -96,12 +96,12 @@
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/table-data-inspected dsid table-name))}
+                   (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
       (tr ["data"])]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/columns-inspected dsid table-name))}
+                   (dispatch `event/columns-inspected {:dsid dsid :table table-name}))}
       (tr ["columns"])]]))
 
 (defn table-list-component [value]
