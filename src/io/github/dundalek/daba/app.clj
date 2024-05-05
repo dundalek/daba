@@ -53,9 +53,9 @@
   (p/eval-str (slurp "src/daba/viewer.cljs")))
 
 (comment
-  (def db-spec "jdbc:duckdb:tmp/duck-data") ; on disk
-  (def db-spec "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
-  (def ds (jdbc/get-datasource db-spec))
+  (def dsid "jdbc:duckdb:tmp/duck-data") ; on disk
+  (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
+  (def ds (jdbc/get-datasource dsid))
 
   (do
     (p/open {:value !taps
@@ -64,7 +64,7 @@
 
   (load-viewers)
 
-  (inspect-database! db-spec)
+  (inspect-database! dsid)
 
   (p/docs)
 
@@ -74,10 +74,6 @@
 
   (reset! !app-db state/default-state)
   @!app-db
-  (def dsid (-> @!app-db
-                ::state/sources
-                first
-                key))
 
   (dispatch (event/database-inspected dsid))
 
