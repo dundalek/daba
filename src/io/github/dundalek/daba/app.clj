@@ -111,6 +111,9 @@
 
     ::pv/inspector))
 
+  (tap> "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
+  (tap> "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite_")
+
   (dispatch (event/new-query-executed
              {:dsid dsid
               :query "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount

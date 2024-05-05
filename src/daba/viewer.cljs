@@ -190,24 +190,33 @@
   (and (map? value)
        (string? (:table-name value))))
 
-(defn new-datasource-component [_]
-  [:form {:on-submit (fn [ev]
-                       (.preventDefault ev)
-                       (let [datasource (-> ev .-target .-datasource .-value)]
-                         (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
-                           (dispatch `event/query-editor-opened datasource)
-                           (dispatch `event/database-inspected datasource))))
-          :style {:display "flex"
-                  :gap 6}}
-   [textarea {:name "datasource"
-              :placeholder "connection string like postgres://user@host:port/dbname"
-              :style {:flex-grow 1}}]
-   [:button {:type "submit"
-             :name "schema"}
-    (tr ["schema"])]
-   [:button {:type "submit"
-             :name "query"}
-    (tr ["query"])]])
+(defn new-datasource-component [value]
+  (let [default-value (or (cond
+                            (string? value) value
+                            (map? value) (:value value))
+                          "")
+        {:keys [path]} (ins/use-context)]
+    [:form {:on-submit (fn [ev]
+                         (.preventDefault ev)
+                         (let [datasource (-> ev .-target .-datasource .-value)]
+                           (when (not= datasource default-value)
+                             (dispatch `event/datasource-input-changed {:path path
+                                                                        :value datasource}))
+                           (if (= (-> ev .-nativeEvent .-submitter .-name) "query")
+                             (dispatch `event/query-editor-opened datasource)
+                             (dispatch `event/database-inspected datasource))))
+            :style {:display "flex"
+                    :gap 6}}
+     [textarea {:name "datasource"
+                :placeholder "connection string like postgres://user@host:port/dbname"
+                :style {:flex-grow 1}
+                :default-value default-value}]
+     [:button {:type "submit"
+               :name "schema"}
+      (tr ["schema"])]
+     [:button {:type "submit"
+               :name "query"}
+      (tr ["query"])]]))
 
 (p/register-viewer!
  {:name ::new-datasource

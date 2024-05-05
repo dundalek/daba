@@ -88,7 +88,8 @@
                            {::pv/default ::dv/removable-item
                             ::dv/removable-item {:wrapped-meta (meta value)}}))
         wrapped (if (instance? clojure.lang.IAtom value)
-                  (swap! value wrap-with-meta)
+                  (do (swap! value wrap-with-meta)
+                      value)
                   (wrap-with-meta value))]
     (core/append-tap db wrapped)))
 
@@ -103,5 +104,24 @@
 (def-event-db datasource-input-opened [db _]
   (removable-tap-submitted
    db
-   (with-meta {}
-     {::pv/default ::dv/new-datasource})))
+   (atom
+    (with-meta {}
+      {::pv/default ::dv/new-datasource}))))
+
+(def-event-db datasource-input-changed [db {:keys [path value]}]
+  (let [new-tap {:value value}]
+    (if-some [top-level-atom (when (= (count path) 1)
+                               (let [tap (nth (::state/taps db) (first path))]
+                                 (when (instance? clojure.lang.IAtom tap)
+                                   tap)))]
+      (do (swap! top-level-atom
+                 (fn [old-value]
+                   (with-meta new-tap
+                     (meta old-value))))
+          db)
+      (removable-tap-submitted
+       db
+       (atom
+        (with-meta {:value value}
+          {::pv/default ::dv/new-datasource}))))))
+
