@@ -55,13 +55,13 @@
       (atom
        (fx/execute-structured-query source query-map))))))
 
-(def-event-fx datagrid-query-changed [{:keys [db]} {:keys [dsid path query-map]}]
+(def-event-db datagrid-query-changed [db {:keys [dsid path query-map]}]
   (assert (= (count path) 1) "Only supporting top level list for now")
   (let [source (core/get-source db dsid)
         !query-atom (nth (::state/taps db) (first path))]
-    {:fx [(fx/execute-query-map {:source source
-                                 :query-map query-map
-                                 :!query-atom !query-atom})]}))
+    (fx!
+     ;; Prone to race condition, consider some kind of queue in the future
+     (reset! !query-atom (fx/execute-structured-query source query-map)))))
 
 (def-event-fx query-editor-opened [{:keys [db]} dsid]
   {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
@@ -71,14 +71,12 @@
   {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
                                :query (coerce-query query)})]})
 
-(def-event-fx query-executed [{:keys [db]} {:keys [dsid query path]}]
-  (let [source (or (core/get-source db dsid)
-                   ;; It might be better to use last used source or offer choice
-                   (first (vals (::state/sources db))))
+(def-event-db query-executed [db {:keys [dsid query path]}]
+  (let [source (core/get-source db dsid)
         !query-atom (nth (::state/taps db) (first path))]
-    {:fx [(fx/execute-query {:source source
-                             :query (coerce-query query)
-                             :!query-atom !query-atom})]}))
+    (fx!
+     ;; Prone to race condition, consider some kind of queue in the future
+     (reset! !query-atom (fx/execute-string-query source (coerce-query query))))))
 
 (def-event-db tap-submitted [db value]
   (core/append-tap db value))

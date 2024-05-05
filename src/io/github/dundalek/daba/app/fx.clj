@@ -33,7 +33,7 @@
                       :query-map query-map}
        ::dv/dsid dsid})))
 
-(defn- execute-string-query [source {:keys [statement offset limit] :as query}]
+(defn execute-string-query [source {:keys [statement offset limit] :as query}]
   (let [{::state/keys [ds dsid]} source
         results (if (str/blank? statement)
                   []
@@ -90,13 +90,3 @@
   (submit
    (atom
     (execute-string-query source query))))
-
-(def-fx execute-query [{:keys [source query !query-atom]}]
-  ;; Prone to race condition, consider some kind of queue in the future
-  (reset! !query-atom
-          (execute-string-query source query)))
-
-(def-fx execute-query-map [{:keys [source query-map !query-atom]}]
-  ;; Prone to race condition, consider some kind of queue in the future
-  (reset! !query-atom
-          (execute-structured-query source query-map)))
