@@ -53,11 +53,20 @@
   (p/eval-str (slurp "src/daba/viewer.cljs")))
 
 (comment
+  (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def dsid "jdbc:duckdb:tmp/duck-data") ; on disk
+  (def dsid {:dbtype "h2" :dbname "tmp/example"})
+
   (def ds (jdbc/get-datasource dsid))
 
+  (jdbc/execute! ds ["
+create table address (
+  id int auto_increment primary key,
+  name varchar(32),
+  email varchar(255)
+)"])
+
   (do
-    (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
     (p/open {:value !taps
              :on-load load-viewers})
     (add-tap #'submit))
@@ -111,7 +120,9 @@
 
     ::pv/inspector))
 
-  (tap> ["jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"])
+  (tap>
+   ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"
+    {:dbtype "h2" :dbname "tmp/example"}])
 
   (tap> "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite_")
 

@@ -192,13 +192,15 @@
 
 (defn datasource? [value]
   (or (string? value)
-      (and (map? value)
-           (contains? value :db-spec))))
+      (map? value)))
 
 (defn datasource-component [value]
-  (let [default-value (or (cond
-                            (string? value) value
-                            (map? value) (:db-spec value))
+  ;; Values can be wrapped in a map with ::db-spec key as a workaround for not being able to attach metadata to strings
+  (let [db-spec (or (when (map? value) (::db-spec value))
+                    value)
+        default-value (or (cond
+                            (string? db-spec) db-spec
+                            (map? db-spec) (pr-str db-spec))
                           "")
         {:keys [path]} (ins/use-context)]
     [:form {:on-submit (fn [ev]

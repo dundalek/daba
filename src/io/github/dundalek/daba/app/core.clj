@@ -1,5 +1,7 @@
 (ns io.github.dundalek.daba.app.core
   (:require
+   [clojure.edn :as edn]
+   [clojure.string :as str]
    [io.github.dundalek.daba.app.state :as state]
    [next.jdbc :as jdbc]))
 
@@ -21,3 +23,13 @@
 
 (defn append-tap [db value]
   (update db ::state/taps conj value))
+
+(defn parse-db-spec [db-spec]
+  (or (try
+        (let [parsed (edn/read-string db-spec)]
+          (when (map? parsed)
+            parsed))
+        (catch Exception _ignore))
+      (if (not (str/starts-with? db-spec "jdbc:"))
+        (str "jdbc:" db-spec)
+        db-spec)))

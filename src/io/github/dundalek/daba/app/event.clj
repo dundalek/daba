@@ -4,7 +4,8 @@
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.fx :as fx]
    [io.github.dundalek.daba.app.state :as state]
-   [io.github.dundalek.daba.internal.miniframe :refer [def-event-db def-event-fx fx!]]
+   [io.github.dundalek.daba.internal.miniframe
+    :refer [def-event-db def-event-fx fx!]]
    [portal.viewer :as-alias pv]))
 
 (def default-page-size 100)
@@ -105,17 +106,21 @@
   (removable-tap-submitted
    db
    (atom
-    (with-meta {:db-spec ""}
+    (with-meta {::dv/db-spec ""}
       {::pv/default ::dv/datasource}))))
 
-(def-event-fx datasource-input-submitted [ctx {:keys [value action]}]
+(def-event-fx datasource-input-submitted [{:keys [db]} {:keys [value action]}]
   (assert (#{"query" "schema"} action))
-  (if (= action "query")
-    (query-editor-opened ctx value)
-    (database-inspected ctx value)))
+  (let [db-spec (core/parse-db-spec value)
+        source (core/get-source db db-spec)
+        fx (if (= action "query")
+             (fx/open-query-editor {:source source
+                                    :query (coerce-query "")})
+             (fx/inspect-database source))]
+    {:fx [fx]}))
 
 (def-event-fx datasource-input-changed [{:keys [db] :as ctx} {:keys [path value] :as params}]
-  (let [new-tap {:db-spec value}
+  (let [new-tap {::dv/db-spec (core/parse-db-spec value)}
         db (if-some [top-level-atom (when (= (count path) 1)
                                       (let [tap (nth (::state/taps db) (first path))]
                                         (when (instance? clojure.lang.IAtom tap)
@@ -133,5 +138,3 @@
     (-> ctx
         (assoc :db db)
         (datasource-input-submitted params))))
-
-
