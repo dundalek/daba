@@ -3,9 +3,12 @@
    [io.github.dundalek.daba.app :as-alias app]
    [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app.frame :as-alias frame]
+   [portal.colors :as c]
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [portal.ui.rpc :as rpc]
+   [portal.ui.styled :as s]
+   [portal.ui.theme :as theme]
    [portal.viewer :as-alias pv]))
 
 ;; Inspired by and could later drop in https://github.com/taoensso/tempura
@@ -16,15 +19,56 @@
   (rpc/call `frame/dispatch
             (into [(keyword event-sym)] args)))
 
+(defn button-style [theme]
+  ;; Portal does not seem to provide components ala design system
+  ;; Following is based on the "Open command palette." button
+  {:font-family (:font-family theme)
+   :background (::c/background theme)
+   :border-radius (:border-radius theme)
+   :border [1 :solid (::c/border theme)]
+   :box-sizing :border-box
+   :padding-top (:padding theme)
+   :padding-bottom (:padding theme)
+   :padding-left (* 3 (:padding theme))
+   :padding-right (* 3 (:padding theme))
+   :color (::c/tag theme)
+   :font-size (:font-size theme)
+   :font-weight :bold
+   :cursor :pointer})
+
+(defn input-style [theme]
+  ;; Based on the filter input "Select a value to enable filtering"
+  (let [color ::c/text #_::c/border]
+    {:flex "1"
+     :background (::c/background theme)
+     :padding (:padding theme)
+     :box-sizing :border-box
+     :font-family (:font-family theme)
+     :font-size (:font-size theme)
+     :color (get theme color)
+     :border [1 :solid (::c/border theme)]
+     :border-radius (:border-radius theme)}))
+
+(defn merge-style [props style]
+  (update props :style #(merge style %)))
+
 (defn textarea [props]
    ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
    ;; https://github.com/djblue/portal/pull/224
-  [:input (merge
-           {:type "text"
-            :on-click (fn [ev]
-                          ;; stop propagation so that portal selection does not steal input focus
-                        (.stopPropagation ev))}
-           props)])
+  (let [theme (theme/use-theme)]
+    [s/input (->
+              {:type "text"
+               :on-click (fn [ev]
+                                 ;; stop propagation so that portal selection does not steal input focus
+                           (.stopPropagation ev))}
+              (merge props)
+              (merge-style (input-style theme)))]))
+
+(defn button [props & children]
+  (let [theme (theme/use-theme)]
+    (into [s/button
+           (-> props (merge-style (button-style theme)))]
+          children)))
 
 (defn paginator [{:keys [offset limit on-offset-change]}]
   (let [page (/ offset limit)]
@@ -32,14 +76,14 @@
                    :justify-content "center"
                    :gap 12
                    :padding 6}}
-     [:button {:on-click (fn [ev]
-                           (.stopPropagation ev)
-                           (on-offset-change (max 0 (- offset limit))))}
+     [button {:on-click (fn [ev]
+                          (.stopPropagation ev)
+                          (on-offset-change (max 0 (- offset limit))))}
       (tr ["prev"])]
      [:span (inc page)]
-     [:button {:on-click (fn [ev]
-                           (.stopPropagation ev)
-                           (on-offset-change (+ offset limit)))}
+     [button {:on-click (fn [ev]
+                          (.stopPropagation ev)
+                          (on-offset-change (+ offset limit)))}
       (tr ["next"])]]))
 
 (defn datagrid-component [coll]
@@ -65,7 +109,7 @@
   (let [{:keys [table-schem]} schema]
     [:div {:style {:display "flex"
                    :gap 6}}
-     [:button
+     [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch `event/tables-inspected {:dsid dsid :schema table-schem}))}
@@ -95,12 +139,12 @@
       (if (= table-type "TABLE")
         table-name
         (str table-name " (" table-type ")"))]
-     [:button
+     [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch `event/columns-inspected {:dsid dsid :table table-name}))}
       (tr ["columns"])]
-     [:button
+     [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
@@ -162,11 +206,11 @@
        [textarea {:name "query"
                   :default-value statement
                   :style {:flex-grow 1}}]
-       [:button {:type "submit"
-                 :name "execute"}
+       [button {:type "submit"
+                :name "execute"}
         (tr ["execute"])]
-       [:button {:type "submit"
-                 :name "execute-new"}
+       [button {:type "submit"
+                :name "execute-new"}
         (tr ["execute as new"])]]
       [:div
        (when (seq results)
@@ -195,7 +239,7 @@
      [:div
       ;; margin to offset inspector border to make the remove button look aligned
       {:style {:margin 1}}
-      [:button
+      [button
        {:on-click (fn [ev]
                     (.stopPropagation ev)
                      ;; last segment seems to be extra 0, dropping it
@@ -235,11 +279,11 @@
                 :placeholder "connection string like postgres://user@host:port/dbname"
                 :style {:flex-grow 1}
                 :default-value default-value}]
-     [:button {:type "submit"
-               :name "schema"}
+     [button {:type "submit"
+              :name "schema"}
       (tr ["schema"])]
-     [:button {:type "submit"
-               :name "query"}
+     [button {:type "submit"
+              :name "query"}
       (tr ["query"])]]))
 
 (defn datasource-list-component [value]
