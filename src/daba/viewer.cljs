@@ -86,13 +86,15 @@
 
 (defn table-item-component [item]
   (let [{::keys [dsid]} (meta item)
-        {:keys [table-name]} item]
+        {:keys [table-name table-type]} item]
     [:div {:style {:display "flex"
                    :flex-direction "row"
                    :align-items "flex-start"
                    :gap 6}}
      [:div {:style {:flex-grow 1}}
-      table-name]
+      (if (= table-type "TABLE")
+        table-name
+        (str table-name " (" table-type ")"))]
      [:button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
@@ -114,16 +116,24 @@
           ::dsid dsid}))]))
 
 (defn column-list-component [value]
-  (let [{::keys [dsid]} (meta value)]
+  (let [{::keys [dsid]} (meta value)
+        item-meta {::pv/for {:column-name ::pv/hiccup
+                             :type-name ::pv/hiccup
+                             :nullable ::pv/hiccup}}]
     [ins/inspector
-     (for [item value]
-       (with-meta
-         [:div {:style {:display "flex"
-                        :flex-direction "row"
-                        :align-items "flex-start"}}
-          [:div {:style {:flex-grow 1}}
-           (:column-name item)]]
-         {::pv/default ::pv/hiccup}))]))
+     (with-meta
+       (for [column value]
+         (let [{:keys [column-name type-name is-nullable nullable]} column]
+           (with-meta
+             {:column-name [:span column-name]
+              :type-name [:span type-name]
+              :nullable [:span (if (zero? nullable)
+                                 ""
+                                 is-nullable)]
+              :info column}
+             item-meta)))
+       {::pv/default ::pv/table
+        ::pv/table {:columns [:column-name :type-name :nullable :info]}})]))
 
 (defn query-editor-component [value]
   (let [[query results] (if (string? value)
