@@ -71,7 +71,8 @@
           children)))
 
 (defn paginator [{:keys [offset limit on-offset-change]}]
-  (let [page (/ offset limit)]
+  (let [theme (theme/use-theme)
+        page (/ offset limit)]
     [:div {:style {:display "flex"
                    :justify-content "center"
                    :gap 12
@@ -80,7 +81,10 @@
                           (.stopPropagation ev)
                           (on-offset-change (max 0 (- offset limit))))}
       (tr ["prev"])]
-     [:span (inc page)]
+     [s/span {:style {:font-family (:font-family theme)
+                      :font-size (:font-size theme)
+                      :padding (:padding theme)}}
+      (inc page)]
      [button {:on-click (fn [ev]
                           (.stopPropagation ev)
                           (on-offset-change (+ offset limit)))}
