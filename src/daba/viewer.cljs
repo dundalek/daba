@@ -46,7 +46,7 @@
   (let [{::keys [datagrid dsid]} (meta coll)
         {:keys [query-map viewer]} datagrid
         {:keys [limit offset]} query-map
-        path (-> (ins/use-context) :path butlast)
+        {:keys [path]} (ins/use-context)
         paginate (fn [new-offset]
                    (dispatch `event/datagrid-query-changed
                              {:dsid dsid
@@ -134,7 +134,7 @@
         {::keys [dsid]} (meta value)
         execute-query (fn [q]
                         (dispatch `event/query-executed
-                                  {:path (butlast path)
+                                  {:path path
                                    :dsid dsid
                                    :query q}))]
     [ins/inspector

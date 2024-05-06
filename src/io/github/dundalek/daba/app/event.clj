@@ -8,7 +8,7 @@
     :refer [def-event-db def-event-fx fx!]]
    [portal.viewer :as-alias pv]))
 
-(def default-page-size 100)
+(def default-page-size 25)
 
 ;; Helpers
 
@@ -27,6 +27,12 @@
          (if (string? query)
            {:statement query}
            query)))
+
+(defn wrap-with-removable-meta [value]
+  (with-meta
+    value
+    {::pv/default ::dv/removable-item
+     ::dv/removable-item {:wrapped-meta (meta value)}}))
 
 ;; Events
 
@@ -62,7 +68,9 @@
         !query-atom (nth (::state/taps db) (first path))]
     (fx!
      ;; Prone to race condition, consider some kind of queue in the future
-     (reset! !query-atom (fx/execute-structured-query source query-map)))))
+     (reset! !query-atom
+             (wrap-with-removable-meta
+              (fx/execute-structured-query source query-map))))))
 
 (def-event-fx query-editor-opened [{:keys [db]} dsid]
   {:fx [(fx/open-query-editor {:source (core/get-source db dsid)
@@ -77,21 +85,18 @@
         !query-atom (nth (::state/taps db) (first path))]
     (fx!
      ;; Prone to race condition, consider some kind of queue in the future
-     (reset! !query-atom (fx/execute-string-query source (coerce-query query))))))
+     (reset! !query-atom
+             (wrap-with-removable-meta
+              (fx/execute-string-query source (coerce-query query)))))))
 
 (def-event-db tap-submitted [db value]
   (core/append-tap db value))
 
 (def-event-db removable-tap-submitted [db value]
-  (let [wrap-with-meta (fn [value]
-                         (with-meta
-                           value
-                           {::pv/default ::dv/removable-item
-                            ::dv/removable-item {:wrapped-meta (meta value)}}))
-        wrapped (if (instance? clojure.lang.IAtom value)
-                  (do (swap! value wrap-with-meta)
+  (let [wrapped (if (instance? clojure.lang.IAtom value)
+                  (do (swap! value wrap-with-removable-meta)
                       value)
-                  (wrap-with-meta value))]
+                  (wrap-with-removable-meta value))]
     (core/append-tap db wrapped)))
 
 (def-event-db tap-removed [db path]
