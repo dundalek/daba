@@ -173,18 +173,24 @@
   (let [{:keys [path]} (ins/use-context)]
     [:div {:style {:display "flex"
                    :flex-direction "row"
-                   :align-items "flex-start"}}
+                   :align-items "flex-start"
+                   :gap 6
+                   ;; Add extra padding to avoid overlapping with portal's atom indicator
+                   :padding-right 36}}
      [:div {:style {:flex-grow 1}}
       [ins/inspector
        (with-meta
          value
          (-> value meta ::removable-item :wrapped-meta))]]
-     [:button
-      {:on-click (fn [ev]
-                   (.stopPropagation ev)
-                   ;; last segment seems to be extra 0, dropping it
-                   (dispatch `event/tap-removed path))}
-      "X"]]))
+     [:div
+      ;; margin to offset inspector border to make the remove button look aligned
+      {:style {:margin 1}}
+      [:button
+       {:on-click (fn [ev]
+                    (.stopPropagation ev)
+                     ;; last segment seems to be extra 0, dropping it
+                    (dispatch `event/tap-removed path))}
+       "x"]]]))
 
 (defn table-item? [value]
   (and (map? value)
