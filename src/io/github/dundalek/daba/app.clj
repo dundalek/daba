@@ -96,6 +96,7 @@ create table address (
 
   (dispatch (event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}))
   (dispatch (event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}))
+  (dispatch (event/new-query-executed {:dsid dsid :query "select"}))
 
   (->> (dbc/get-columns ds "pushes")
        count)

@@ -100,14 +100,16 @@
                              {:dsid dsid
                               :path path
                               :query-map (assoc query-map :offset new-offset)}))]
-    [:div
-     [ins/inspector
-      (with-meta
-        (into [] coll)
-        viewer)]
-     [paginator {:offset offset
-                 :limit limit
-                 :on-offset-change paginate}]]))
+    (if (and (map coll) (::error coll))
+      [ins/inspector (::error coll)]
+      [:div
+       [ins/inspector
+        (with-meta
+          (into [] coll)
+          viewer)]
+       [paginator {:offset offset
+                   :limit limit
+                   :on-offset-change paginate}]])))
 
 (defn schema-list-actions [{:keys [dsid schema]}]
   (let [{:keys [table-schem]} schema]
@@ -216,16 +218,18 @@
        [button {:type "submit"
                 :name "execute-new"}
         (tr ["execute as new"])]]
-      [:div
-       (when (seq results)
-         [::pv/inspector
-          (with-meta results
-            {::pv/default ::pv/table
-             ::pv/table (::pv/table (meta value))})])
-       (when (or (seq results) (not (zero? offset)))
-         [paginator {:offset offset
-                     :limit limit
-                     :on-offset-change #(execute-query (assoc query :offset %))}])]]]))
+      (if (and (map? results) (::error results))
+        [::pv/inspector (::error results)]
+        [:div
+         (when (seq results)
+           [::pv/inspector
+            (with-meta results
+              {::pv/default ::pv/table
+               ::pv/table (::pv/table (meta value))})])
+         (when (or (seq results) (not (zero? offset)))
+           [paginator {:offset offset
+                       :limit limit
+                       :on-offset-change #(execute-query (assoc query :offset %))}])])]]))
 
 (defn removable-item-component [value]
   (let [{:keys [path]} (ins/use-context)]
