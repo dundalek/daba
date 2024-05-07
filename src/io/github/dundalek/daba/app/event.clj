@@ -104,11 +104,11 @@
               (remove-nth coll (first path))
               (meta coll)))))
 
-(def-event-db datasource-input-opened [db _]
+(def-event-db datasource-input-opened [db db-spec]
   (removable-tap-submitted
    db
    (atom
-    (with-meta {::dv/db-spec ""}
+    (with-meta {::dv/db-spec db-spec}
       {::pv/default ::dv/datasource}))))
 
 (def-event-fx datasource-input-submitted [{:keys [db]} {:keys [value action]}]

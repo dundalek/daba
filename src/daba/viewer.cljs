@@ -142,7 +142,7 @@
                    :align-items "flex-start"
                    :gap 6}}
      [:div {:style {:flex-grow 1}}
-      (if (= table-type "TABLE")
+      (if (#{"TABLE" "BASE TABLE"} table-type)
         table-name
         (str table-name " (" table-type ")"))]
      [button
@@ -226,7 +226,7 @@
             (with-meta results
               {::pv/default ::pv/table
                ::pv/table (::pv/table (meta value))})])
-         (when (or (seq results) (not (zero? offset)))
+         (when (or (seq results) (pos? offset))
            [paginator {:offset offset
                        :limit limit
                        :on-offset-change #(execute-query (assoc query :offset %))}])])]]))

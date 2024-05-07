@@ -1,5 +1,6 @@
 (ns io.github.dundalek.daba.app
   (:require
+   [clojure.string :as str]
    [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
@@ -67,8 +68,8 @@ create table address (
 )"])
 
   (do
-    (p/open {:value !taps
-             :on-load load-viewers})
+    (def p (p/open {:value !taps
+                    :on-load load-viewers}))
     (add-tap #'submit))
 
   (load-viewers)
@@ -77,19 +78,19 @@ create table address (
 
   (p/docs)
 
-  (dbc/get-schemas ds)
-
-  (dbc/get-tables ds "main")
-
   (reset! !app-db state/default-state)
   @!app-db
 
   (dispatch (event/database-inspected dsid))
 
-  (dispatch (event/datasource-input-opened))
+  (dispatch (event/datasource-input-opened dsid))
+  (dispatch (event/datasource-input-opened ""))
+
+  (tap>
+   ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"
+    {:dbtype "h2" :dbname "tmp/example"}])
 
   (dispatch (event/tables-inspected {:dsid dsid :schema "main"}))
-
   (dispatch (event/columns-inspected {:dsid dsid :table "pushes"}))
 
   (dispatch (event/query-editor-opened dsid))
@@ -97,6 +98,10 @@ create table address (
   (dispatch (event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}))
   (dispatch (event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}))
   (dispatch (event/new-query-executed {:dsid dsid :query "select"}))
+
+  (dbc/get-schemas ds)
+
+  (dbc/get-tables ds "main")
 
   (->> (dbc/get-columns ds "pushes")
        count)
@@ -109,28 +114,76 @@ create table address (
 
   (tap>
    (pv/default
-    ["select * from Artist limit 100"
+    ["select * from Artist"
 
-     "select count(*) from Artist"
-
-     "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount
-    from Artist
-    left join Album using (ArtistId)
-    group by Artist.ArtistId
-    order by AlbumCount desc"]
+     "select count(*) from Artist"]
 
     ::pv/inspector))
 
   (tap>
-   ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"
-    {:dbtype "h2" :dbname "tmp/example"}])
+   (->> (str/split (slurp "example/queries.sql") #"\n\n+")
+        (map #(pv/default % ::dv/query-editor))))
 
-  (tap> "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite_")
+  (tap>
+   (pv/vega-lite
+    {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+     :data
+     {:values
+      [{:a "A", :b 28}
+       {:a "B", :b 55}
+       {:a "C", :b 43}
+       {:a "D", :b 91}
+       {:a "E", :b 81}
+       {:a "F", :b 53}]}
+     :mark "bar"
+     :encoding
+     {:x
+      {:field "a"
+       :type "nominal"
+       :axis {:labelAngle 0}}
+      :y {:field "b", :type "quantitative"}}}))
 
-  (dispatch (event/new-query-executed
-             {:dsid dsid
-              :query "select Artist.ArtistId, Artist.Name, count(*) as AlbumCount
-    from Artist
-    left join Album using (ArtistId)
-    group by Artist.ArtistId
-    order by AlbumCount desc"})))
+  (tap>
+   (let [values @p
+         [x y] (-> (meta @p) ::dv/removable-item  :wrapped-meta ::pv/table :columns)]
+     (pv/vega-lite
+      {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+       :data {:values values}
+       :mark "bar"
+       :encoding {:x
+                  {:field x
+                   :type "nominal"
+                   :axis {:labelAngle 0}}
+                  :y {:field y :type "quantitative"}}})))
+
+  (tap>
+   (let [values @p
+         [category value] (-> (meta @p) ::dv/removable-item :wrapped-meta ::pv/table :columns)]
+     (pv/vega-lite
+      {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+       ; :description "A simple pie chart with labels."
+       :data
+       {:values values}
+       :encoding
+       {:theta {:field value
+                :type "quantitative"
+                :stack true}
+        :color {:field category
+                :type "nominal"
+                :legend nil}}
+       :layer
+       [{:mark {:type "arc", :outerRadius 80}}
+        {:mark {:type "text", :radius 110}
+         :encoding {:text
+                    {:field category :type "nominal"}}}]
+       :view {:stroke nil}})))
+
+  (tap>
+   (let [values @p
+         [x y] (-> (meta @p) ::dv/removable-item  :wrapped-meta ::pv/table :columns)]
+     (pv/vega-lite
+      {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+       :data {:values values}
+       :encoding {:x {:field x :type "nominal" #_"quantitative"}
+                  :y {:field y :type "quantitative"}}
+       :mark "line"}))))
