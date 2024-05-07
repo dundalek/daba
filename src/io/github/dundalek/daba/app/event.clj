@@ -6,7 +6,7 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.miniframe
     :refer [def-event-db def-event-fx fx!]]
-   [portal.viewer :as-alias pv]))
+   [portal.viewer :as pv]))
 
 (def default-page-size 25)
 
@@ -29,10 +29,7 @@
            query)))
 
 (defn wrap-with-removable-meta [value]
-  (with-meta
-    value
-    {::pv/default ::dv/removable-item
-     ::dv/removable-item {:wrapped-meta (meta value)}}))
+  (pv/default value ::dv/removable-item {:wrapped-meta (meta value)}))
 
 ;; Events
 

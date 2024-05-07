@@ -47,7 +47,7 @@
     !taps))
 
 (defn submit [value]
-  (frame/dispatch (event/tap-submitted value)))
+  (frame/dispatch (event/removable-tap-submitted value)))
 
 (defn load-viewers []
   (p/eval-str (slurp "src/daba/viewer.cljs")))
