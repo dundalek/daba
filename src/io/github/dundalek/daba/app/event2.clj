@@ -6,6 +6,8 @@
    [io.github.dundalek.daba.internal.miniframe :refer [def-event-db fx!]]))
 
 (declare fx-execute-string-query)
+(declare fx-query-table-data)
+(declare fx-request-tables)
 (declare fx-request-schemas)
 
 (def-event-db tap-submitted [db value]
@@ -18,14 +20,14 @@
   ;; TODO leave datasource input
   (core2/clear-cells db))
 
-(def-event-db datasource-edit-triggered [db value]
-  (core2/create-cell db (core2/datasource-input-viwer value)))
-
 (def-event-db tables-request-completed [db {:keys [result dsid]}]
   (core2/create-cell db (core2/table-list-viewer result {:dsid dsid})))
 
 (def-event-db schemas-request-completed [db {:keys [result dsid]}]
   (core2/create-cell db (core2/schema-list-viewer result {:dsid dsid})))
+
+(def-event-db datasource-edit-triggered [db value]
+  (core2/create-cell db (core2/datasource-input-viwer value)))
 
 (def-event-db datasource-schema-triggered [_db value]
   (fx!
@@ -50,6 +52,37 @@
     (-> db
         (core2/set-cell cell-id (core2/datasource-input-viwer value))
         (core2/create-cell viewer))))
+
+(def-event-db schema-tables-inspected [_db {:keys [dsid schema]}]
+  (fx!
+   (fx-request-tables {:dsid dsid :schema schema})))
+
+(def-event-db columns-request-completed [db {:keys [result dsid]}]
+  (core2/create-cell db (core2/column-list-viewer result {:dsid dsid})))
+
+(def-event-db table-columns-inspected [_db {:keys [dsid table]}]
+  (fx!
+   (try
+     (let [tables (dbc/get-columns dsid table)]
+       (frame/dispatch (columns-request-completed {:result tables :dsid dsid})))
+     (catch Exception e
+       (frame/dispatch (tap-submitted e))))))
+
+(def-event-db table-data-query-completed [db {:keys [cell-id result query dsid]}]
+  (core2/set-cell db cell-id
+                  (core2/datagrid-viewer result {:query query :dsid dsid})))
+
+(def-event-db table-data-inspected [db {:keys [dsid table]}]
+  (let [query (core2/table-data-query table)
+        [db cell-id] (core2/next-cell-id db)]
+    (fx!
+     (fx-query-table-data {:cell-id cell-id :dsid dsid :query query}))
+    (core2/set-cell db cell-id
+                    (core2/datagrid-viewer [] {:query query :dsid dsid}))))
+
+(def-event-db table-data-query-changed [_db {:keys [cell-id dsid query]}]
+  (fx!
+   (fx-query-table-data {:cell-id cell-id :dsid dsid :query query})))
 
 (def-event-db query-execution-completed [db {:keys [cell-id result query dsid]}]
   (core2/set-cell db cell-id
@@ -86,6 +119,24 @@
      ;; TODO query and dsid redundant
      :query query
      :dsid dsid})))
+
+(defn fx-query-table-data [{:keys [cell-id dsid query]}]
+  (frame/dispatch
+   (table-data-query-completed
+    {:cell-id cell-id
+     :result (try (dbc/execute-structured-query dsid query)
+                  (catch Exception e
+                    (core2/wrap-exception e)))
+     ;; TODO query and dsid redundant
+     :query query
+     :dsid dsid})))
+
+(defn fx-request-tables [{:keys [dsid schema]}]
+  (try
+    (let [tables (dbc/get-tables dsid schema)]
+      (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))
+    (catch Exception e
+      (frame/dispatch (tap-submitted e)))))
 
 (defn fx-request-schemas [dsid]
   (try

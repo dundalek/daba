@@ -10,7 +10,7 @@
 
 (defn next-cell-id [db]
   (let [{::state/keys [next-cell-id]} db]
-    [(assoc ::state/next-cell-id (inc next-cell-id))
+    [(assoc db ::state/next-cell-id (inc next-cell-id))
      next-cell-id]))
 
 ; (defn update-cell [db cell-id f & args]
@@ -50,18 +50,27 @@
                     (str "jdbc:" db-spec)
                     db-spec)})))
 
+(defn coerce-query [query]
+  (merge {:offset 0 :limit default-page-size}
+         (if (string? query)
+           {:statement query}
+           query)))
+
+(defn table-data-query [table]
+  {:table table
+   :where :all
+   :limit default-page-size
+   :offset 0})
+
+(defn wrap-exception [e]
+  {::dv/error e})
+
 (defn datasource-input-viwer [value]
   (pv/default
    (if (string? value)
      {:jdbcUrl value}
      value)
    ::dv/datasource-input))
-
-(defn coerce-query [query]
-  (merge {:offset 0 :limit default-page-size}
-         (if (string? query)
-           {:statement query}
-           query)))
 
 (defn query-editor-viewer [results {:keys [query dsid]}]
   (-> results
@@ -73,11 +82,18 @@
                                     ::dv/dsid dsid)
                        columns (assoc ::pv/table {:columns columns})))))))
 
+(defn datagrid-viewer [results {:keys [dsid query]}]
+  (-> results
+      (vary-meta (fn [m]
+                   (let [{:keys [columns]} m]
+                     (cond-> (assoc m
+                                    ::pv/default ::dv/datagrid
+                                    ::dv/datagrid {:query query}
+                                    ::dv/dsid dsid)
+                       columns (assoc ::pv/table {:columns columns})))))))
+
 (defn empty-query-editor-viewer [opts]
   (query-editor-viewer [] opts))
-
-(defn wrap-exception [e]
-  {::dv/error e})
 
 (defn schema-list-viewer [schemas {:keys [dsid]}]
   (-> schemas
@@ -88,3 +104,9 @@
   (-> tables
       (pv/default ::dv/table-list)
       (vary-meta assoc ::dv/dsid dsid)))
+
+(defn column-list-viewer [columns {:keys [dsid]}]
+  (-> columns
+      (pv/default ::dv/column-list)
+      (vary-meta assoc ::dv/dsid dsid)))
+

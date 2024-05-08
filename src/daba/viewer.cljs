@@ -1,7 +1,6 @@
 (ns daba.viewer
   (:require
    [io.github.dundalek.daba.app :as-alias app]
-   [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app.event2 :as-alias event2]
    [io.github.dundalek.daba.app.frame :as-alias frame]
    [portal.colors :as c]
@@ -93,27 +92,85 @@
                           (on-offset-change (+ offset limit)))}
       (tr ["next"])]]))
 
-(defn datagrid-component [coll]
-  (let [{::keys [datagrid dsid]} (meta coll)
-        {:keys [query-map viewer]} datagrid
-        {:keys [limit offset]} query-map
-        {:keys [path]} (ins/use-context)
-        paginate (fn [new-offset]
-                   (dispatch `event/datagrid-query-changed
-                             {:dsid dsid
-                              :path path
-                              :query-map (assoc query-map :offset new-offset)}))]
-    (if (and (map coll) (::error coll))
-      [ins/inspector {} (::error coll)]
-      [:div
+(defn paginated-table-results [{:keys [on-offset-change offset limit value]}]
+  (if (and (map? value) (::error value))
+    [ins/inspector {} (::error value)]
+    [:div
+     (when (seq value)
        [ins/inspector
         {}
-        (with-meta
-          (into [] coll)
-          viewer)]
+        (with-meta value
+          {::pv/default ::pv/table
+           ::pv/table (::pv/table (meta value))})])
+     (when (or (seq value) (pos? offset))
        [paginator {:offset offset
                    :limit limit
-                   :on-offset-change paginate}]])))
+                   :on-offset-change on-offset-change}])]))
+
+(defn datagrid-component [value]
+  (let [{::keys [datagrid cell-id dsid]} (meta value)
+        {:keys [query]} datagrid
+        {:keys [limit offset]} query
+        on-offset-change (fn [new-offset]
+                           (dispatch `event2/table-data-query-changed
+                                     {:cell-id cell-id
+                                      :dsid dsid
+                                      :query (assoc query :offset new-offset)}))]
+    [:div
+     [paginated-table-results {:offset offset
+                               :limit limit
+                               :on-offset-change on-offset-change
+                               :value value}]]))
+
+(defn query-editor-component [value]
+  (let [{::keys [query-editor cell-id dsid]} (meta value)
+        {:keys [query]} query-editor
+        {:keys [statement offset limit]} query
+        execute-query (fn [query]
+                        (dispatch `event2/query-editor-executed
+                                  {:cell-id cell-id
+                                   :dsid dsid
+                                   :query query}))
+        on-offset-change #(execute-query (assoc query :offset %))]
+    ;; extra inspector wrapping otherwise seems to cause UI freezes
+    [ins/inspector
+     {::pv/default ::pv/hiccup}
+     [:div
+      [:form {:on-submit (fn [ev]
+                           (.preventDefault ev)
+                           (.stopPropagation ev)
+                           (let [statement (-> ev .-target .-query .-value)]
+                             (execute-query {:statement statement})))
+              :style {:display "flex"
+                      :gap 6}}
+       [textarea {:name "query"
+                  :default-value statement
+                  :style {:flex-grow 1}}]
+       [button {:type "submit"
+                :name "execute"}
+        (tr ["execute"])]]
+      [paginated-table-results {:offset offset
+                                :limit limit
+                                :on-offset-change on-offset-change
+                                :value value}]]]))
+
+(defn query-component [statement]
+  [:form {:on-submit (fn [ev]
+                       (.preventDefault ev)
+                       (.stopPropagation ev)
+                       (case (-> ev .-nativeEvent .-submitter .-name)
+                         "execute" (dispatch `event2/query-executed statement)
+                         "edit" (dispatch `event2/query-edited statement)))
+          :style {:display "flex"
+                  :gap 6}}
+   [:div {:style {:flex-grow 1}}
+    statement]
+   [button {:type "submit"
+            :name "execute"}
+    (tr ["execute"])]
+   [button {:type "submit"
+            :name "edit"}
+    (tr ["edit"])]])
 
 (defn schema-list-actions [{:keys [dsid schema]}]
   (let [{:keys [table-schem]} schema]
@@ -122,7 +179,7 @@
      [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/tables-inspected {:dsid dsid :schema table-schem}))}
+                   (dispatch `event2/schema-tables-inspected {:dsid dsid :schema table-schem}))}
       (tr ["tables"])]]))
 
 (defn schema-list-component [value]
@@ -153,12 +210,12 @@
      [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/columns-inspected {:dsid dsid :table table-name}))}
+                   (dispatch `event2/table-columns-inspected {:dsid dsid :table table-name}))}
       (tr ["columns"])]
      [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
+                   (dispatch `event2/table-data-inspected {:dsid dsid :table table-name}))}
       (tr ["data"])]]))
 
 (defn table-list-component [value]
@@ -191,60 +248,6 @@
              item-meta)))
        {::pv/default ::pv/table
         ::pv/table {:columns [:column-name :type-name :nullable :info]}})]))
-
-(defn query-editor-component [value]
-  (let [{::keys [query-editor cell-id dsid]} (meta value)
-        {:keys [query]} query-editor
-        {:keys [statement offset limit]} query
-        execute-query (fn [q]
-                        (dispatch `event2/query-editor-executed
-                                  {:cell-id cell-id
-                                   :dsid dsid
-                                   :query q}))]
-    [ins/inspector
-     {::pv/default ::pv/hiccup}
-     [:div
-      [:form {:on-submit (fn [ev]
-                           (.preventDefault ev)
-                           (let [statement (-> ev .-target .-query .-value)]
-                             (execute-query {:statement statement})))
-              :style {:display "flex"
-                      :gap 6}}
-       [textarea {:name "query"
-                  :default-value statement
-                  :style {:flex-grow 1}}]
-       [button {:type "submit"
-                :name "execute"}
-        (tr ["execute"])]]
-      (if (and (map? value) (::error value))
-        [::pv/inspector (::error value)]
-        [:div
-         (when (seq value)
-           [::pv/inspector
-            (with-meta value
-              {::pv/default ::pv/table
-               ::pv/table (::pv/table (meta value))})])
-         (when (or (seq value) (pos? offset))
-           [paginator {:offset offset
-                       :limit limit
-                       :on-offset-change #(execute-query (assoc query :offset %))}])])]]))
-
-(defn query-component [statement]
-  [:form {:on-submit (fn [ev]
-                       (.preventDefault ev)
-                       (case (-> ev .-nativeEvent .-submitter .-name)
-                         "execute" (dispatch `event2/query-executed statement)
-                         "edit" (dispatch `event2/query-edited statement)))
-          :style {:display "flex"
-                  :gap 6}}
-   [:div {:style {:flex-grow 1}}
-    statement]
-   [button {:type "submit"
-            :name "execute"}
-    (tr ["execute"])]
-   [button {:type "submit"
-            :name "edit"}
-    (tr ["edit"])]])
 
 (defn removable-item-component [value]
   (let [{:keys [cell-id wrapped-meta]} (::removable-item (meta value))]
@@ -288,6 +291,7 @@
                           "")]
     [:form {:on-submit (fn [ev]
                          (.preventDefault ev)
+                         (.stopPropagation ev)
                          (let [datasource (-> ev .-target .-datasource .-value)
                                payload {:cell-id cell-id
                                         :value datasource}]
