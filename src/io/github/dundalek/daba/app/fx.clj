@@ -33,22 +33,21 @@
           datagrid-meta)))))
 
 (defn execute-string-query [source {:keys [statement] :as query}]
-  (let [{::state/keys [ds dsid]} source
-        editor-meta {::pv/default ::dv/query-editor
-                     ::dv/query-editor {:query query}
-                     ::dv/dsid dsid}]
-    (try
-      (let [results (if (str/blank? statement)
-                      []
-                      (dbc/execute-string-query ds query))
-            {:keys [columns]} (meta results)]
-        (with-meta
-          results
-          (assoc editor-meta ::pv/table {:columns columns})))
-      (catch Exception e
-        (with-meta
-          {::dv/error e}
-          editor-meta)))))
+  (let [{::state/keys [ds dsid]} source]
+    (-> (try
+          (let [results (if (str/blank? statement)
+                          []
+                          (dbc/execute-string-query ds query))
+                {:keys [columns]} (meta results)]
+            (with-meta
+              results
+              {:pv/table {:columns columns}}))
+          (catch Exception e
+            {::dv/error e}))
+        (vary-meta assoc
+                   ::pv/default ::dv/query-editor
+                   ::dv/query-editor {:query query}
+                   ::dv/dsid dsid))))
 
 (defn- get-table-list [{:keys [source schema-name]}]
   (let [{::state/keys [ds dsid]} source]
