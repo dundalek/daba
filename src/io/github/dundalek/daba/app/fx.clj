@@ -7,9 +7,6 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [io.github.dundalek.daba.internal.miniframe :refer [def-fx]]
-   [next.jdbc :as jdbc]
-   [next.jdbc.result-set :as rs]
-   [next.jdbc.sql :as sql]
    [portal.viewer :as pv]))
 
 ;; Helpers
@@ -23,11 +20,7 @@
                        ::dv/datagrid {:query-map query-map}
                        ::dv/dsid dsid}]
     (try
-      (let [{:keys [table where limit offset]} query-map
-            results (sql/find-by-keys ds table where
-                                      {:limit limit
-                                       :offset offset
-                                       :builder-fn dbc/as-maps-with-columns-meta})
+      (let [results (dbc/execute-structured-query ds query-map)
             {:keys [columns]} (meta results)]
         (with-meta
           results
@@ -39,7 +32,7 @@
           {::dv/error e}
           datagrid-meta)))))
 
-(defn execute-string-query [source {:keys [statement offset limit] :as query}]
+(defn execute-string-query [source {:keys [statement] :as query}]
   (let [{::state/keys [ds dsid]} source
         editor-meta {::pv/default ::dv/query-editor
                      ::dv/query-editor {:query query}
@@ -47,15 +40,7 @@
     (try
       (let [results (if (str/blank? statement)
                       []
-                      ;; We want to prevent bringing the viewer down in case there is a select with millions of rows.
-                      ;; We still iterate over them on the client runtime, but at least do not realize everything.
-                      ;; Using plan with reductinos is more efficient than execute! which realizes all results.
-                      ;; Maybe consider a heuristic and only try to limit SELECT queries.
-                      (dbc/reduce-with-columns-meta
-                       (jdbc/plan ds [statement] {:builder-fn rs/as-maps})
-                       (comp (drop offset)
-                             (take limit)
-                             (map #(rs/datafiable-row % ds {})))))
+                      (dbc/execute-string-query ds query))
             {:keys [columns]} (meta results)]
         (with-meta
           results

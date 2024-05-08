@@ -2,7 +2,8 @@
   (:require
    [next.jdbc :as jdbc]
    [next.jdbc.datafy]
-   [next.jdbc.result-set :as rs])
+   [next.jdbc.result-set :as rs]
+   [next.jdbc.sql :as sql])
   (:import
    (java.sql PreparedStatement ResultSet)))
 
@@ -94,3 +95,22 @@
     (-> (.getMetaData con)
         (.getColumns nil nil table-name nil)
         (metadata-result-set))))
+
+(defn execute-string-query [ds query]
+  (let [{:keys [statement offset limit]} query]
+    ;; We want to prevent bringing the viewer down in case there is a select with millions of rows.
+    ;; We still iterate over them on the client runtime, but at least do not realize everything.
+    ;; Using plan with reductinos is more efficient than execute! which realizes all results.
+    ;; Maybe consider a heuristic and only try to limit SELECT queries.
+    (reduce-with-columns-meta
+     (jdbc/plan ds [statement] {:builder-fn rs/as-maps})
+     (comp (drop offset)
+           (take limit)
+           (map #(rs/datafiable-row % ds {}))))))
+
+(defn execute-structured-query [ds query]
+  (let [{:keys [table where limit offset]} query]
+    (sql/find-by-keys ds table where
+                      {:limit limit
+                       :offset offset
+                       :builder-fn as-maps-with-columns-meta})))
