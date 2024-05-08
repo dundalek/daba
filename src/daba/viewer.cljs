@@ -55,12 +55,14 @@
 (defn textarea [props]
    ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
    ;; https://github.com/djblue/portal/pull/224
-  (let [theme (theme/use-theme)]
+  (let [theme (theme/use-theme)
+        stop-propagation (fn [ev]
+                           ;; stop propagation so that portal selection does not steal input focus
+                           (.stopPropagation ev))]
     [s/input (->
               {:type "text"
-               :on-click (fn [ev]
-                                 ;; stop propagation so that portal selection does not steal input focus
-                           (.stopPropagation ev))}
+               :on-click stop-propagation
+               :on-double-click stop-propagation}
               (merge props)
               (merge-style (input-style theme)))]))
 
