@@ -142,4 +142,11 @@
         (datasource-input-submitted params))))
 
 (def-event-db values-cleared [db _]
-  (assoc db ::state/taps '()))
+  (let [{::state/keys [taps]} db
+        db (update db ::state/taps empty)]
+    (if (and (= (count taps) 1)
+             (instance? clojure.lang.IAtom (first taps))
+             (= ::dv/datasource (-> taps first deref meta
+                                    core/unwrap-removable-item-meta ::pv/default)))
+      db
+      (datasource-input-opened db ""))))

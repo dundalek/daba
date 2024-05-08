@@ -2,6 +2,7 @@
   (:require
    [clojure.edn :as edn]
    [clojure.string :as str]
+   [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.state :as state]
    [next.jdbc :as jdbc]))
 
@@ -33,3 +34,8 @@
       (if (not (str/starts-with? db-spec "jdbc:"))
         (str "jdbc:" db-spec)
         db-spec)))
+
+(defn unwrap-removable-item-meta [m]
+  (cond-> m
+    (contains? m ::dv/removable-item)
+    (-> ::dv/removable-item :wrapped-meta)))
