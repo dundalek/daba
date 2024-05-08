@@ -140,3 +140,6 @@
     (-> ctx
         (assoc :db db)
         (datasource-input-submitted params))))
+
+(def-event-db values-cleared [db _]
+  (assoc db ::state/taps '()))

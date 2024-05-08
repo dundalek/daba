@@ -11,6 +11,7 @@
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
    [portal.api :as p]
+   [portal.runtime :as pruntime]
    [portal.viewer :as pv]))
 
 (defonce !app-db (atom state/default-state))
@@ -57,6 +58,17 @@
   (-> (meta value)
       ::dv/removable-item :wrapped-meta
       ::pv/table :columns))
+
+(defn clear-values
+  ([] (clear-values nil identity))
+  ([_request done]
+   (pruntime/clear-values
+    nil
+    (fn [_]
+      (dispatch (event/values-cleared))
+      (done nil)))))
+
+(pruntime/register! #'clear-values {:name `pruntime/clear-values})
 
 (comment
   (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
