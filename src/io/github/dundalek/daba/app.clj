@@ -3,6 +3,7 @@
    [clojure.string :as str]
    [daba.viewer :as-alias dv]
    [io.github.dundalek.daba.app.event :as event]
+   [io.github.dundalek.daba.app.event2 :as event2]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.fx]
    [io.github.dundalek.daba.app.state :as state]
@@ -27,29 +28,25 @@
 
 (p/register! #'frame/dispatch)
 
-(defn inspect-database! [db-spec]
-  (dispatch (event/database-inspected db-spec))
-  #_(let [dsid (str (gensym "dsid-"))
-          ds (jdbc/get-datasource db-spec)
-          source {::state/ds ds
-                  ::state/db-spec db-spec
-                  ::state/dsid dsid}]
-      (dispatch (event/source-added {:dsid dsid :source source}))
-      (dispatch (event/database-inspected dsid))))
+(defn cells->tap-list [cells]
+  (->> cells
+       (map (fn [[cell-id v]]
+              (pv/default v ::dv/removable-item
+                          {:cell-id cell-id
+                           :wrapped-meta (assoc (meta v)
+                                                ::dv/cell-id cell-id)})))))
 
 (defonce !taps
   (let [!taps (atom nil)
-        watcher (fn [_ _ _ new-state]
-                  (let [new-taps (::state/taps new-state)]
-                    (when-not (identical? @!taps new-taps)
-                      (reset! !taps new-taps))))]
+        watcher (fn [_ _ _old-state new-state]
+                  (reset! !taps (cells->tap-list (::state/cells new-state))))]
     ;; Poor man's subscription
     (add-watch !app-db ::taps watcher)
     (watcher nil nil nil @!app-db)
     !taps))
 
 (defn submit [value]
-  (frame/dispatch (event/removable-tap-submitted value)))
+  (frame/dispatch (event2/tap-submitted value)))
 
 (defn load-viewers []
   (p/eval-str (slurp "src/daba/viewer.cljs")))
@@ -65,7 +62,7 @@
    (pruntime/clear-values
     nil
     (fn [_]
-      (dispatch (event/values-cleared))
+      (dispatch (event2/values-cleared))
       (done nil)))))
 
 (pruntime/register! #'clear-values {:name `pruntime/clear-values})
@@ -91,17 +88,19 @@ create table address (
 
   (load-viewers)
 
-  (inspect-database! dsid)
+  (frame/dispatch (event2/tap-submitted [1 2 3]))
+  (frame/dispatch (event2/tap-submitted 456))
 
   (p/docs)
 
   (reset! !app-db state/default-state)
   @!app-db
 
-  (dispatch (event/database-inspected dsid))
+  (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource))
+  (tap> (pv/default {:jdbcUrl ""} ::dv/datasource))
+  (tap> (pv/default "sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite" ::dv/datasource))
 
-  (dispatch (event/datasource-input-opened dsid))
-  (dispatch (event/datasource-input-opened ""))
+  (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource-input))
 
   (tap>
    ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"

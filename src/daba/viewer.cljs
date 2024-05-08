@@ -2,6 +2,7 @@
   (:require
    [io.github.dundalek.daba.app :as-alias app]
    [io.github.dundalek.daba.app.event :as-alias event]
+   [io.github.dundalek.daba.app.event2 :as-alias event2]
    [io.github.dundalek.daba.app.frame :as-alias frame]
    [portal.colors :as c]
    [portal.ui.api :as p]
@@ -103,9 +104,10 @@
                               :path path
                               :query-map (assoc query-map :offset new-offset)}))]
     (if (and (map coll) (::error coll))
-      [ins/inspector (::error coll)]
+      [ins/inspector {} (::error coll)]
       [:div
        [ins/inspector
+        {}
         (with-meta
           (into [] coll)
           viewer)]
@@ -126,6 +128,7 @@
 (defn schema-list-component [value]
   (let [{::keys [dsid]} (meta value)]
     [ins/inspector
+     {}
      (for [item value]
        (with-meta
          [:div {:style {:display "flex"
@@ -161,6 +164,7 @@
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
     [ins/inspector
+     {}
      (for [item value]
        (with-meta
          item
@@ -173,6 +177,7 @@
                              :type-name ::pv/hiccup
                              :nullable ::pv/hiccup}}]
     [ins/inspector
+     {}
      (with-meta
        (for [column value]
          (let [{:keys [column-name type-name is-nullable nullable]} column]
@@ -188,15 +193,12 @@
         ::pv/table {:columns [:column-name :type-name :nullable :info]}})]))
 
 (defn query-editor-component [value]
-  (let [[query results] (if (string? value)
-                          [{:statement value} nil]
-                          [(-> value meta ::query-editor :query) value])
+  (let [{::keys [query-editor cell-id dsid]} (meta value)
+        {:keys [query]} query-editor
         {:keys [statement offset limit]} query
-        {:keys [path]} (ins/use-context)
-        {::keys [dsid]} (meta value)
         execute-query (fn [q]
-                        (dispatch `event/query-executed
-                                  {:path path
+                        (dispatch `event2/query-editor-executed
+                                  {:cell-id cell-id
                                    :dsid dsid
                                    :query q}))]
     [ins/inspector
@@ -205,10 +207,7 @@
       [:form {:on-submit (fn [ev]
                            (.preventDefault ev)
                            (let [statement (-> ev .-target .-query .-value)]
-                             (if (= (-> ev .-nativeEvent .-submitter .-name) "execute")
-                               (execute-query {:statement statement})
-                               (dispatch `event/new-query-executed {:dsid dsid
-                                                                    :query statement}))))
+                             (execute-query {:statement statement})))
               :style {:display "flex"
                       :gap 6}}
        [textarea {:name "query"
@@ -216,25 +215,39 @@
                   :style {:flex-grow 1}}]
        [button {:type "submit"
                 :name "execute"}
-        (tr ["execute"])]
-       [button {:type "submit"
-                :name "execute-new"}
-        (tr ["execute as new"])]]
-      (if (and (map? results) (::error results))
-        [::pv/inspector (::error results)]
+        (tr ["execute"])]]
+      (if (and (map? value) (::error value))
+        [::pv/inspector (::error value)]
         [:div
-         (when (seq results)
+         (when (seq value)
            [::pv/inspector
-            (with-meta results
+            (with-meta value
               {::pv/default ::pv/table
                ::pv/table (::pv/table (meta value))})])
-         (when (or (seq results) (pos? offset))
+         (when (or (seq value) (pos? offset))
            [paginator {:offset offset
                        :limit limit
                        :on-offset-change #(execute-query (assoc query :offset %))}])])]]))
 
+(defn query-component [statement]
+  [:form {:on-submit (fn [ev]
+                       (.preventDefault ev)
+                       (case (-> ev .-nativeEvent .-submitter .-name)
+                         "execute" (dispatch `event2/query-executed statement)
+                         "edit" (dispatch `event2/query-edited statement)))
+          :style {:display "flex"
+                  :gap 6}}
+   [:div {:style {:flex-grow 1}}
+    statement]
+   [button {:type "submit"
+            :name "execute"}
+    (tr ["execute"])]
+   [button {:type "submit"
+            :name "edit"}
+    (tr ["edit"])]])
+
 (defn removable-item-component [value]
-  (let [{:keys [path]} (ins/use-context)]
+  (let [{:keys [cell-id wrapped-meta]} (::removable-item (meta value))]
     [:div {:style {:display "flex"
                    :flex-direction "row"
                    :align-items "flex-start"
@@ -243,17 +256,17 @@
                    :padding-right 36}}
      [:div {:style {:flex-grow 1}}
       [ins/inspector
+       {}
        (with-meta
          value
-         (-> value meta ::removable-item :wrapped-meta))]]
+         wrapped-meta)]]
      [:div
       ;; margin to offset inspector border to make the remove button look aligned
       {:style {:margin 1}}
       [button
        {:on-click (fn [ev]
                     (.stopPropagation ev)
-                     ;; last segment seems to be extra 0, dropping it
-                    (dispatch `event/tap-removed path))}
+                    (dispatch `event2/tap-removed cell-id))}
        "x"]]]))
 
 (defn table-item? [value]
@@ -264,25 +277,23 @@
   (or (string? value)
       (map? value)))
 
-(defn datasource-component [value]
-  ;; Values can be wrapped in a map with ::db-spec key as a workaround for not being able to attach metadata to strings
-  (let [db-spec (or (when (map? value) (::db-spec value))
-                    value)
+(defn datasource-input-component [value]
+  (let [{::keys [cell-id]} (meta value)
         default-value (or (cond
-                            (string? db-spec) db-spec
-                            (map? db-spec) (pr-str db-spec))
-                          "")
-        {:keys [path]} (ins/use-context)]
+                            (string? value) value
+                            (map? value) (if (and (= (count value) 1)
+                                                  (string? (:jdbcUrl value)))
+                                           (:jdbcUrl value)
+                                           (pr-str value)))
+                          "")]
     [:form {:on-submit (fn [ev]
                          (.preventDefault ev)
                          (let [datasource (-> ev .-target .-datasource .-value)
-                               action (-> ev .-nativeEvent .-submitter .-name)
-                               payload {:path path
-                                        :value datasource
-                                        :action action}]
-                           (if (= datasource default-value)
-                             (dispatch `event/datasource-input-submitted payload)
-                             (dispatch `event/datasource-input-changed payload))))
+                               payload {:cell-id cell-id
+                                        :value datasource}]
+                           (case (-> ev .-nativeEvent .-submitter .-name)
+                             "schema" (dispatch `event2/datasource-input-schema-triggered payload)
+                             "query" (dispatch `event2/datasource-input-query-triggered payload))))
             :style {:display "flex"
                     :gap 6}}
      [textarea {:name "datasource"
@@ -296,8 +307,29 @@
               :name "query"}
       (tr ["query"])]]))
 
+(defn datasource-component [value]
+  [:div {:style {:display "flex"
+                 :gap 6}}
+   [:div {:style {:flex-grow 1}}
+    ;; Would be nice to use inspector, but we need to reset default viewer.
+    ;; However, the convenient `portal.viewer/default` helper can't be used in sci.
+    [::pv/pr-str {} value]]
+   [button {:on-click (fn [ev]
+                        (.stopPropagation ev)
+                        (dispatch `event2/datasource-schema-triggered value))}
+    (tr ["schema"])]
+   [button {:on-click (fn [ev]
+                        (.stopPropagation ev)
+                        (dispatch `event2/datasource-query-triggered value))}
+    (tr ["query"])]
+   [button {:on-click (fn [ev]
+                        (.stopPropagation ev)
+                        (dispatch `event2/datasource-edit-triggered value))}
+    (tr ["edit"])]])
+
 (defn datasource-list-component [value]
   [ins/inspector
+   {}
    (for [item value]
      (if (map? value)
        (with-meta
@@ -311,6 +343,11 @@
  {:name ::datasource
   :predicate datasource?
   :component datasource-component})
+
+(p/register-viewer!
+ {:name ::datasource-input
+  :predicate #(= ::datasource-input (::pv/default (meta %)))
+  :component datasource-input-component})
 
 (p/register-viewer!
  {:name ::datasource-list
@@ -353,10 +390,15 @@
   :component column-list-component})
 
 (p/register-viewer!
+ {:name ::query
+  :predicate (fn [value]
+               (string? value))
+  :component query-component})
+
+(p/register-viewer!
  {:name ::query-editor
   :predicate (fn [value]
-               (or (string? value)
-                   (contains? (meta value) ::query-editor)))
+               (contains? (meta value) ::query-editor))
   :component query-editor-component})
 
 (p/register-viewer!
