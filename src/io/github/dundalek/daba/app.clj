@@ -53,6 +53,11 @@
 (defn load-viewers []
   (p/eval-str (slurp "src/daba/viewer.cljs")))
 
+(defn query->columns [value]
+  (-> (meta value)
+      ::dv/removable-item :wrapped-meta
+      ::pv/table :columns))
+
 (comment
   (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def dsid "jdbc:duckdb:tmp/duck-data") ; on disk
@@ -145,7 +150,7 @@ create table address (
 
   (tap>
    (let [values @p
-         [x y] (-> (meta @p) ::dv/removable-item  :wrapped-meta ::pv/table :columns)]
+         [x y] (query->columns @p)]
      (pv/vega-lite
       {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
        :data {:values values}
@@ -158,7 +163,7 @@ create table address (
 
   (tap>
    (let [values @p
-         [category value] (-> (meta @p) ::dv/removable-item :wrapped-meta ::pv/table :columns)]
+         [category value] (query->columns @p)]
      (pv/vega-lite
       {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
        ; :description "A simple pie chart with labels."
@@ -180,7 +185,7 @@ create table address (
 
   (tap>
    (let [values @p
-         [x y] (-> (meta @p) ::dv/removable-item  :wrapped-meta ::pv/table :columns)]
+         [x y] (query->columns @p)]
      (pv/vega-lite
       {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
        :data {:values values}
