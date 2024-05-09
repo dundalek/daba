@@ -2,8 +2,8 @@
   (:require
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
-   [io.github.dundalek.daba.internal.jdbc :as dbc]
-   [io.github.dundalek.daba.internal.miniframe :refer [def-event-db fx!]]))
+   [io.github.dundalek.daba.lib.jdbc :as dbc]
+   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]))
 
 (declare fx-execute-string-query)
 (declare fx-query-table-data)

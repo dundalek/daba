@@ -1,4 +1,4 @@
-(ns io.github.dundalek.daba.internal.jdbc
+(ns io.github.dundalek.daba.lib.jdbc
   (:require
    [next.jdbc :as jdbc]
    [next.jdbc.datafy]

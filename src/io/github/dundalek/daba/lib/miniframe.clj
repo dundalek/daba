@@ -1,4 +1,4 @@
-(ns io.github.dundalek.daba.internal.miniframe)
+(ns io.github.dundalek.daba.lib.miniframe)
 
 (defonce !event-registry (atom {}))
 (defonce !fx-registry (atom {}))
