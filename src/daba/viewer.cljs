@@ -1,6 +1,6 @@
 (ns daba.viewer
   (:require
-   [io.github.dundalek.daba.app.event2 :as-alias event2]
+   [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app.frame :as-alias frame]
    [io.github.dundalek.daba.app.state :as-alias state]
    [portal.colors :as c]
@@ -114,7 +114,7 @@
         {:keys [query]} datagrid
         {:keys [limit offset]} query
         on-offset-change (fn [new-offset]
-                           (dispatch `event2/table-data-query-changed
+                           (dispatch `event/table-data-query-changed
                                      {:cell-id cell-id
                                       :dsid dsid
                                       :query (assoc query :offset new-offset)}))]
@@ -129,7 +129,7 @@
         {:keys [query]} query-editor
         {:keys [statement offset limit]} query
         execute-query (fn [query]
-                        (dispatch `event2/query-editor-executed
+                        (dispatch `event/query-editor-executed
                                   {:cell-id cell-id
                                    :dsid dsid
                                    :query query}))
@@ -161,8 +161,8 @@
                        (.preventDefault ev)
                        (.stopPropagation ev)
                        (case (-> ev .-nativeEvent .-submitter .-name)
-                         "execute" (dispatch `event2/query-executed statement)
-                         "edit" (dispatch `event2/query-edited statement)))
+                         "execute" (dispatch `event/query-executed statement)
+                         "edit" (dispatch `event/query-edited statement)))
           :style {:display "flex"
                   :gap 6}}
    [:div {:style {:flex-grow 1}}
@@ -181,7 +181,7 @@
      [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event2/schema-tables-inspected {:dsid dsid :schema table-schem}))}
+                   (dispatch `event/schema-tables-inspected {:dsid dsid :schema table-schem}))}
       (tr ["tables"])]]))
 
 (defn schema-list-component [value]
@@ -212,12 +212,12 @@
      [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event2/table-columns-inspected {:dsid dsid :table table-name}))}
+                   (dispatch `event/table-columns-inspected {:dsid dsid :table table-name}))}
       (tr ["columns"])]
      [button
       {:on-click (fn [ev]
                    (.stopPropagation ev)
-                   (dispatch `event2/table-data-inspected {:dsid dsid :table table-name}))}
+                   (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
       (tr ["data"])]]))
 
 (defn table-list-component [value]
@@ -275,8 +275,8 @@
                                payload {:cell-id cell-id
                                         :value datasource}]
                            (case (-> ev .-nativeEvent .-submitter .-name)
-                             "schema" (dispatch `event2/datasource-input-schema-triggered payload)
-                             "query" (dispatch `event2/datasource-input-query-triggered payload))))
+                             "schema" (dispatch `event/datasource-input-schema-triggered payload)
+                             "query" (dispatch `event/datasource-input-query-triggered payload))))
             :style {:display "flex"
                     :gap 6}}
      [textarea {:name "datasource"
@@ -304,15 +304,15 @@
        (vary-meta value assoc ::pv/default ::pv/pr-str))]]
    [button {:on-click (fn [ev]
                         (.stopPropagation ev)
-                        (dispatch `event2/datasource-schema-triggered value))}
+                        (dispatch `event/datasource-schema-triggered value))}
     (tr ["schema"])]
    [button {:on-click (fn [ev]
                         (.stopPropagation ev)
-                        (dispatch `event2/datasource-query-triggered value))}
+                        (dispatch `event/datasource-query-triggered value))}
     (tr ["query"])]
    [button {:on-click (fn [ev]
                         (.stopPropagation ev)
-                        (dispatch `event2/datasource-edit-triggered value))}
+                        (dispatch `event/datasource-edit-triggered value))}
     (tr ["edit"])]])
 
 (defn datasource-list-component [value]
@@ -344,7 +344,7 @@
       [button
        {:on-click (fn [ev]
                     (.stopPropagation ev)
-                    (dispatch `event2/tap-removed cell-id))}
+                    (dispatch `event/tap-removed cell-id))}
        "x"]]]))
 
 ;; Copy of portal.ui.inspector/container-coll because it is private

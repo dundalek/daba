@@ -1,6 +1,6 @@
-(ns io.github.dundalek.daba.app.event2
+(ns io.github.dundalek.daba.app.event
   (:require
-   [io.github.dundalek.daba.app.core2 :as core2]
+   [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [io.github.dundalek.daba.internal.miniframe :refer [def-event-db fx!]]))
@@ -11,54 +11,54 @@
 (declare fx-request-schemas)
 
 (def-event-db tap-submitted [db value]
-  (core2/create-cell db value))
+  (core/create-cell db value))
 
 (def-event-db tap-removed [db cell-id]
-  (core2/remove-cell db cell-id))
+  (core/remove-cell db cell-id))
 
 (def-event-db values-cleared [db _]
   ;; TODO leave datasource input
-  (core2/clear-cells db))
+  (core/clear-cells db))
 
 (def-event-db tables-request-completed [db {:keys [result dsid]}]
-  (core2/create-cell db (core2/table-list-viewer result {:dsid dsid})))
+  (core/create-cell db (core/table-list-viewer result {:dsid dsid})))
 
 (def-event-db schemas-request-completed [db {:keys [result dsid]}]
-  (core2/create-cell db (core2/schema-list-viewer result {:dsid dsid})))
+  (core/create-cell db (core/schema-list-viewer result {:dsid dsid})))
 
 (def-event-db datasource-edit-triggered [db value]
-  (core2/create-cell db (core2/datasource-input-viwer value)))
+  (core/create-cell db (core/datasource-input-viwer value)))
 
 (def-event-db datasource-schema-triggered [_db value]
   (fx!
-   (fx-request-schemas (core2/parse-db-spec value))))
+   (fx-request-schemas (core/parse-db-spec value))))
 
 (def-event-db datasource-query-triggered [db value]
-  (let [dsid (core2/parse-db-spec value)
-        query (core2/coerce-query core2/default-input-query)
-        viewer (core2/empty-query-editor-viewer {:query query :dsid dsid})]
-    (core2/create-cell db viewer)))
+  (let [dsid (core/parse-db-spec value)
+        query (core/coerce-query core/default-input-query)
+        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
+    (core/create-cell db viewer)))
 
 (def-event-db datasource-input-schema-triggered [db {:keys [cell-id value]}]
   (fx!
-   (fx-request-schemas (core2/parse-db-spec value)))
+   (fx-request-schemas (core/parse-db-spec value)))
   (-> db
-      (core2/set-cell cell-id (core2/datasource-input-viwer value))))
+      (core/set-cell cell-id (core/datasource-input-viwer value))))
 
 (def-event-db datasource-input-query-triggered [db {:keys [cell-id value]}]
-  (let [dsid (core2/parse-db-spec value)
-        query (core2/coerce-query core2/default-input-query)
-        viewer (core2/empty-query-editor-viewer {:query query :dsid dsid})]
+  (let [dsid (core/parse-db-spec value)
+        query (core/coerce-query core/default-input-query)
+        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
     (-> db
-        (core2/set-cell cell-id (core2/datasource-input-viwer value))
-        (core2/create-cell viewer))))
+        (core/set-cell cell-id (core/datasource-input-viwer value))
+        (core/create-cell viewer))))
 
 (def-event-db schema-tables-inspected [_db {:keys [dsid schema]}]
   (fx!
    (fx-request-tables {:dsid dsid :schema schema})))
 
 (def-event-db columns-request-completed [db {:keys [result dsid]}]
-  (core2/create-cell db (core2/column-list-viewer result {:dsid dsid})))
+  (core/create-cell db (core/column-list-viewer result {:dsid dsid})))
 
 (def-event-db table-columns-inspected [_db {:keys [dsid table]}]
   (fx!
@@ -69,45 +69,45 @@
        (frame/dispatch (tap-submitted e))))))
 
 (def-event-db table-data-query-completed [db {:keys [cell-id result query dsid]}]
-  (core2/set-cell db cell-id
-                  (core2/datagrid-viewer result {:query query :dsid dsid})))
+  (core/set-cell db cell-id
+                 (core/datagrid-viewer result {:query query :dsid dsid})))
 
 (def-event-db table-data-inspected [db {:keys [dsid table]}]
-  (let [query (core2/table-data-query table)
-        [db cell-id] (core2/next-cell-id db)]
+  (let [query (core/table-data-query table)
+        [db cell-id] (core/next-cell-id db)]
     (fx!
      (fx-query-table-data {:cell-id cell-id :dsid dsid :query query}))
-    (core2/set-cell db cell-id
-                    (core2/datagrid-viewer [] {:query query :dsid dsid}))))
+    (core/set-cell db cell-id
+                   (core/datagrid-viewer [] {:query query :dsid dsid}))))
 
 (def-event-db table-data-query-changed [_db {:keys [cell-id dsid query]}]
   (fx!
    (fx-query-table-data {:cell-id cell-id :dsid dsid :query query})))
 
 (def-event-db query-execution-completed [db {:keys [cell-id result query dsid]}]
-  (core2/set-cell db cell-id
-                  (core2/query-editor-viewer result {:query query :dsid dsid})))
+  (core/set-cell db cell-id
+                 (core/query-editor-viewer result {:query query :dsid dsid})))
 
 (def-event-db query-editor-executed [_db {:keys [cell-id dsid query]}]
   ;; dsid might be redundant, likely could read it from cell value
-  (let [query (core2/coerce-query query)]
+  (let [query (core/coerce-query query)]
     (fx!
      (fx-execute-string-query {:cell-id cell-id :dsid dsid :query query}))))
 
 (def-event-db query-edited [db statement]
-  (let [dsid (core2/last-used-dsid db)
-        query (core2/coerce-query statement)
-        viewer (core2/empty-query-editor-viewer {:query query :dsid dsid})]
-    (core2/create-cell db viewer)))
+  (let [dsid (core/last-used-dsid db)
+        query (core/coerce-query statement)
+        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
+    (core/create-cell db viewer)))
 
 (def-event-db query-executed [db statement]
-  (let [dsid (core2/last-used-dsid db)
-        query (core2/coerce-query statement)
-        viewer (core2/empty-query-editor-viewer {:query query :dsid dsid})
-        [db cell-id] (core2/next-cell-id db)]
+  (let [dsid (core/last-used-dsid db)
+        query (core/coerce-query statement)
+        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})
+        [db cell-id] (core/next-cell-id db)]
     (fx!
      (fx-execute-string-query {:cell-id cell-id :dsid dsid :query query}))
-    (core2/set-cell db cell-id viewer)))
+    (core/set-cell db cell-id viewer)))
 
 (defn fx-execute-string-query [{:keys [cell-id dsid query]}]
   (frame/dispatch
@@ -115,7 +115,7 @@
     {:cell-id cell-id
      :result (try (dbc/execute-string-query dsid query)
                   (catch Exception e
-                    (core2/wrap-exception e)))
+                    (core/wrap-exception e)))
      ;; TODO query and dsid redundant
      :query query
      :dsid dsid})))
@@ -126,7 +126,7 @@
     {:cell-id cell-id
      :result (try (dbc/execute-structured-query dsid query)
                   (catch Exception e
-                    (core2/wrap-exception e)))
+                    (core/wrap-exception e)))
      ;; TODO query and dsid redundant
      :query query
      :dsid dsid})))

@@ -1,4 +1,4 @@
-(ns io.github.dundalek.daba.app.core2
+(ns io.github.dundalek.daba.app.core
   (:require
    [clojure.edn :as edn]
    [clojure.string :as str]

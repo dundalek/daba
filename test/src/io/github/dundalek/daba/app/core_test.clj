@@ -1,7 +1,7 @@
 (ns io.github.dundalek.daba.app.core-test
   (:require
    [clojure.test :refer [deftest is]]
-   [io.github.dundalek.daba.app.core2 :as core]))
+   [io.github.dundalek.daba.app.core :as core]))
 
 (deftest parse-db-spec-test
   (is (= {:jdbcUrl "jdbc:"} (core/parse-db-spec "")))

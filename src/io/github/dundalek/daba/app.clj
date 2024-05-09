@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [daba.viewer :as-alias dv]
-   [io.github.dundalek.daba.app.event2 :as event2]
+   [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
@@ -27,7 +27,7 @@
 (p/register! #'frame/dispatch)
 
 (defn submit [value]
-  (frame/dispatch (event2/tap-submitted value)))
+  (frame/dispatch (event/tap-submitted value)))
 
 (defn load-viewers []
   (p/eval-str (slurp "src/daba/viewer.cljs")))
@@ -42,7 +42,7 @@
    (pruntime/clear-values
     nil
     (fn [_]
-      (dispatch (event2/values-cleared))
+      (dispatch (event/values-cleared))
       (done nil)))))
 
 (pruntime/register! #'clear-values {:name `pruntime/clear-values})
@@ -68,8 +68,8 @@ create table address (
 
   (load-viewers)
 
-  (frame/dispatch (event2/tap-submitted [1 2 3]))
-  (frame/dispatch (event2/tap-submitted 456))
+  (frame/dispatch (event/tap-submitted [1 2 3]))
+  (frame/dispatch (event/tap-submitted 456))
 
   (p/docs)
 
@@ -78,7 +78,7 @@ create table address (
 
   (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource))
   (tap> (pv/default {:jdbcUrl ""} ::dv/datasource))
-  (tap> (pv/default "sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite" ::dv/datasource))
+  (tap> (pv/default dsid ::dv/datasource))
 
   (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource-input))
 
@@ -86,15 +86,15 @@ create table address (
    ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"
     {:dbtype "h2" :dbname "tmp/example"}])
 
-  (dispatch (event2/datasource-schema-triggered dsid))
-  (dispatch (event2/schema-tables-inspected {:dsid dsid :schema "main"}))
-  (dispatch (event2/table-columns-inspected {:dsid dsid :table "Artist"}))
+  (dispatch (event/datasource-schema-triggered dsid))
+  (dispatch (event/schema-tables-inspected {:dsid dsid :schema "main"}))
+  (dispatch (event/table-columns-inspected {:dsid dsid :table "Artist"}))
 
-  (dispatch (event2/datasource-query-triggered dsid))
+  (dispatch (event/datasource-query-triggered dsid))
 
-  (dispatch (event2/query-executed "select * from Artist limit 10"))
-  (dispatch (event2/query-executed "select count(*) from Artist"))
-  (dispatch (event2/query-executed "select"))
+  (dispatch (event/query-executed "select * from Artist limit 10"))
+  (dispatch (event/query-executed "select count(*) from Artist"))
+  (dispatch (event/query-executed "select"))
 
   (dbc/get-schemas ds)
 
