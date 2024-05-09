@@ -8,6 +8,9 @@
 
 (def default-page-size 25)
 
+;; Trying out if some sample query would be useful instead of empty string?
+(def default-input-query "select * from mytable")
+
 (defn next-cell-id [db]
   (let [{::state/keys [next-cell-id]} db]
     [(assoc db ::state/next-cell-id (inc next-cell-id))

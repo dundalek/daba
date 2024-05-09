@@ -35,7 +35,7 @@
 
 (def-event-db datasource-query-triggered [db value]
   (let [dsid (core2/parse-db-spec value)
-        query (core2/coerce-query "")
+        query (core2/coerce-query core2/default-input-query)
         viewer (core2/empty-query-editor-viewer {:query query :dsid dsid})]
     (core2/create-cell db viewer)))
 
@@ -47,7 +47,7 @@
 
 (def-event-db datasource-input-query-triggered [db {:keys [cell-id value]}]
   (let [dsid (core2/parse-db-spec value)
-        query (core2/coerce-query "")
+        query (core2/coerce-query core2/default-input-query)
         viewer (core2/empty-query-editor-viewer {:query query :dsid dsid})]
     (-> db
         (core2/set-cell cell-id (core2/datasource-input-viwer value))
