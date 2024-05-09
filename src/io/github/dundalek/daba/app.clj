@@ -22,10 +22,6 @@
                    :fx @mf/!fx-registry
                    :app-db !app-db})))
 
-(def dispatch frame/dispatch)
-
-(p/register! #'frame/dispatch)
-
 (defn submit [value]
   (frame/dispatch (event/tap-submitted value)))
 
@@ -42,10 +38,18 @@
    (pruntime/clear-values
     nil
     (fn [_]
-      (dispatch (event/values-cleared))
+      (frame/dispatch (event/values-cleared))
       (done nil)))))
 
+(p/register! #'frame/dispatch)
 (pruntime/register! #'clear-values {:name `pruntime/clear-values})
+
+(defn open
+  ([] (open nil))
+  ([opts]
+   (p/open (merge {:value !app-db
+                   :on-load load-viewers}
+                  opts))))
 
 (comment
   (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
@@ -62,8 +66,7 @@ create table address (
 )"])
 
   (do
-    (def p (p/open {:value !app-db
-                    :on-load load-viewers}))
+    (def p (open))
     (add-tap #'submit))
 
   (load-viewers)
@@ -86,15 +89,15 @@ create table address (
    ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"
     {:dbtype "h2" :dbname "tmp/example"}])
 
-  (dispatch (event/datasource-schema-triggered dsid))
-  (dispatch (event/schema-tables-inspected {:dsid dsid :schema "main"}))
-  (dispatch (event/table-columns-inspected {:dsid dsid :table "Artist"}))
+  (frame/dispatch (event/datasource-schema-triggered dsid))
+  (frame/dispatch (event/schema-tables-inspected {:dsid dsid :schema "main"}))
+  (frame/dispatch (event/table-columns-inspected {:dsid dsid :table "Artist"}))
 
-  (dispatch (event/datasource-query-triggered dsid))
+  (frame/dispatch (event/datasource-query-triggered dsid))
 
-  (dispatch (event/query-executed "select * from Artist limit 10"))
-  (dispatch (event/query-executed "select count(*) from Artist"))
-  (dispatch (event/query-executed "select"))
+  (frame/dispatch (event/query-executed "select * from Artist limit 10"))
+  (frame/dispatch (event/query-executed "select count(*) from Artist"))
+  (frame/dispatch (event/query-executed "select"))
 
   (dbc/get-schemas ds)
 
