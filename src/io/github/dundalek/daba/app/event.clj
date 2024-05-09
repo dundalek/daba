@@ -2,6 +2,7 @@
   (:require
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
+   [io.github.dundalek.daba.lib.drivers :as drivers]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
    [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]))
 
@@ -113,9 +114,11 @@
   (frame/dispatch
    (query-execution-completed
     {:cell-id cell-id
-     :result (try (dbc/execute-string-query dsid query)
-                  (catch Exception e
-                    (core/wrap-exception e)))
+     :result (try
+               (drivers/ensure-loaded! dsid)
+               (dbc/execute-string-query dsid query)
+               (catch Exception e
+                 (core/wrap-exception e)))
      ;; TODO query and dsid redundant
      :query query
      :dsid dsid})))
@@ -140,6 +143,7 @@
 
 (defn fx-request-schemas [dsid]
   (try
+    (drivers/ensure-loaded! dsid)
     (let [schemas (dbc/get-schemas dsid)]
       (if (seq schemas)
         (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
