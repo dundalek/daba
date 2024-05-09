@@ -33,6 +33,14 @@
 (defn clear-cells [db]
   (update db ::state/cells empty))
 
+;; The initial idea was to create datasource once, and use generated DSID
+;; (Data Source ID) to pass around between portal client and server process
+;; and use it for lookup. The challenge is to keep the datasource as long as
+;; there exist taps referencing it.
+;; So to make things easier for now we use db-spec (since it is just a value)
+;; as DSID and we don't need to keep extra state. This has an overhead that
+;; we construct a datasource for every request. It should be tolerable for
+;; now and can be optimized in the future.
 (defn last-used-dsid [db]
   ;; Probably would be better to offer some kind of select box
   (->> db

@@ -2,10 +2,8 @@
   (:require
    [clojure.string :as str]
    [daba.viewer :as-alias dv]
-   [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.event2 :as event2]
    [io.github.dundalek.daba.app.frame :as frame]
-   [io.github.dundalek.daba.app.fx]
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.internal.jdbc :as dbc]
    [io.github.dundalek.daba.internal.miniframe :as mf]
@@ -88,14 +86,15 @@ create table address (
    ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"
     {:dbtype "h2" :dbname "tmp/example"}])
 
-  (dispatch (event/tables-inspected {:dsid dsid :schema "main"}))
-  (dispatch (event/columns-inspected {:dsid dsid :table "pushes"}))
+  (dispatch (event2/datasource-schema-triggered dsid))
+  (dispatch (event2/schema-tables-inspected {:dsid dsid :schema "main"}))
+  (dispatch (event2/table-columns-inspected {:dsid dsid :table "Artist"}))
 
-  (dispatch (event/query-editor-opened dsid))
+  (dispatch (event2/datasource-query-triggered dsid))
 
-  (dispatch (event/new-query-executed {:dsid dsid :query "select * from Artist limit 10"}))
-  (dispatch (event/new-query-executed {:dsid dsid :query "select count(*) from Artist"}))
-  (dispatch (event/new-query-executed {:dsid dsid :query "select"}))
+  (dispatch (event2/query-executed "select * from Artist limit 10"))
+  (dispatch (event2/query-executed "select count(*) from Artist"))
+  (dispatch (event2/query-executed "select"))
 
   (dbc/get-schemas ds)
 
