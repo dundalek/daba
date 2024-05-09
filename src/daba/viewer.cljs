@@ -222,13 +222,18 @@
 
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
-    [ins/inspector
-     {}
-     (for [item value]
-       (with-meta
-         item
-         {::pv/default ::table-item
-          ::dsid dsid}))]))
+    ;; Adding toggle-bg to follow convention that expanded nested collections
+    ;; have inverted backgrounds.
+    ;; This results in white background with default light theme (nord-light)
+    ;; that is consistent with rest of the values.
+    [ins/toggle-bg
+     [ins/inspector
+      {}
+      (for [item value]
+        (with-meta
+          item
+          {::pv/default ::table-item
+           ::dsid dsid}))]]))
 
 (defn column-list-component [value]
   (let [{::keys [dsid]} (meta value)
