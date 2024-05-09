@@ -1,12 +1,13 @@
 (ns daba.viewer
   (:require
-   [io.github.dundalek.daba.app :as-alias app]
    [io.github.dundalek.daba.app.event2 :as-alias event2]
    [io.github.dundalek.daba.app.frame :as-alias frame]
+   [io.github.dundalek.daba.app.state :as-alias state]
    [portal.colors :as c]
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [portal.ui.rpc :as rpc]
+   [portal.ui.select :as select]
    [portal.ui.styled :as s]
    [portal.ui.theme :as theme]
    [portal.viewer :as-alias pv]))
@@ -61,6 +62,7 @@
                            (.stopPropagation ev))]
     [s/input (->
               {:type "text"
+               :auto-focus true
                :on-click stop-propagation
                :on-double-click stop-propagation}
               (merge props)
@@ -190,7 +192,7 @@
        (with-meta
          [:div {:style {:display "flex"
                         :flex-direction "row"
-                        :align-items "flex-start"}}
+                        :align-items "center"}}
           [:div {:style {:flex-grow 1}}
            (:table-schem item)]
           [schema-list-actions {:schema item :dsid dsid}]]
@@ -201,7 +203,7 @@
         {:keys [table-name table-type]} item]
     [:div {:style {:display "flex"
                    :flex-direction "row"
-                   :align-items "flex-start"
+                   :align-items "center"
                    :gap 6}}
      [:div {:style {:flex-grow 1}}
       (if (#{"TABLE" "BASE TABLE"} table-type)
@@ -249,29 +251,6 @@
        {::pv/default ::pv/table
         ::pv/table {:columns [:column-name :type-name :nullable :info]}})]))
 
-(defn removable-item-component [value]
-  (let [{:keys [cell-id wrapped-meta]} (::removable-item (meta value))]
-    [:div {:style {:display "flex"
-                   :flex-direction "row"
-                   :align-items "flex-start"
-                   :gap 6
-                   ;; Add extra padding to avoid overlapping with portal's atom indicator
-                   :padding-right 36}}
-     [:div {:style {:flex-grow 1}}
-      [ins/inspector
-       {}
-       (with-meta
-         value
-         wrapped-meta)]]
-     [:div
-      ;; margin to offset inspector border to make the remove button look aligned
-      {:style {:margin 1}}
-      [button
-       {:on-click (fn [ev]
-                    (.stopPropagation ev)
-                    (dispatch `event2/tap-removed cell-id))}
-       "x"]]]))
-
 (defn table-item? [value]
   (and (map? value)
        (string? (:table-name value))))
@@ -313,11 +292,16 @@
 
 (defn datasource-component [value]
   [:div {:style {:display "flex"
+                 :align-items "center"
                  :gap 6}}
    [:div {:style {:flex-grow 1}}
     ;; Would be nice to use inspector, but we need to reset default viewer.
     ;; However, the convenient `portal.viewer/default` helper can't be used in sci.
-    [::pv/pr-str {} value]]
+    [ins/inspector
+     {}
+     (if (string? value)
+       value
+       (vary-meta value assoc ::pv/default ::pv/pr-str))]]
    [button {:on-click (fn [ev]
                         (.stopPropagation ev)
                         (dispatch `event2/datasource-schema-triggered value))}
@@ -335,6 +319,7 @@
   [ins/inspector
    {}
    (for [item value]
+     ;; Would be nicer to use (pv/default), but it can't be required
      (if (map? value)
        (with-meta
          item
@@ -342,6 +327,74 @@
        (with-meta
          [::datasource item]
          {::pv/default ::pv/hiccup})))])
+
+(defn removable-item [props child]
+  (let [{:keys [cell-id]} props]
+    [:div {:style {:display "flex"
+                   :flex-direction "row"
+                   :align-items "flex-start"
+                   :gap 6
+                   ;; Add extra padding to avoid overlapping with portal's atom indicator
+                   :padding-right 36}}
+     [:div {:style {:flex-grow 1}}
+      child]
+     [:div
+      ;; margin to offset inspector border to make the remove button look aligned
+      {:style {:margin 1}}
+      [button
+       {:on-click (fn [ev]
+                    (.stopPropagation ev)
+                    (dispatch `event2/tap-removed cell-id))}
+       "x"]]]))
+
+;; Copy of portal.ui.inspector/container-coll because it is private
+(defn container-coll [values child]
+  (let [theme (theme/use-theme)]
+    [ins/with-collection
+     values
+     [s/div
+      ;; collection-header is private, but does not seem that useful on top-level, so just not showing it
+      #_[collection-header values]
+      [s/div
+       {:style
+        {:width "100%"
+         :text-align :left
+         :display :grid
+         :background (ins/get-background)
+         :grid-gap (:padding theme)
+         :padding (:padding theme)
+         :box-sizing :border-box
+         :color (::c/text theme)
+         :font-size  (:font-size theme)
+         :border-bottom-left-radius (:border-radius theme)
+         :border-bottom-right-radius (:border-radius theme)
+         :border [1 :solid (::c/border theme)]}}
+       child]]]))
+
+;; Based on portal.ui.inspector/inspect-coll*
+;; Differences:
+;; - using cell-id for key to keep stable state when re-rendering
+;; - wrapping in removable-item to be able to clear individual items
+;; - no search matcher, portal does not filter on subcollections and top-level filtering of UI cards does not seem that useful
+;; - not wrapping with [l/lazy-seq], portal.ui.lazy causes circular depedency, is it useful in top-level?
+(defn root-component [app-db]
+  (let [values (::state/cells app-db)]
+    [container-coll
+     values
+     (map-indexed
+      (fn [index [cell-id value]]
+        (let [value (try
+                      ;; Pass cell-id so complex widgets can reference state when dispatching events.
+                      ;; Wrapping in try-catch to prevent erroring out on primitive values which don't support metadata.
+                      (vary-meta value assoc ::cell-id cell-id)
+                      (catch :default _ignore
+                        value))]
+          ^{:key cell-id}
+          [removable-item {:cell-id cell-id}
+           [select/with-position
+            {:row index :column 0}
+            [ins/with-key cell-id [ins/inspector value]]]]))
+      values)]))
 
 (p/register-viewer!
  {:name ::datasource
@@ -359,11 +412,6 @@
                (and (sequential? value)
                     (datasource? (first value))))
   :component datasource-list-component})
-
-(p/register-viewer!
- {:name ::removable-item
-  :predicate (constantly true)
-  :component removable-item-component})
 
 (p/register-viewer!
  {:name ::table-item
@@ -410,3 +458,10 @@
   :predicate (fn [value]
                (map? (::datagrid (meta value))))
   :component datagrid-component})
+
+(p/register-viewer!
+ {:name ::root
+  :predicate (fn [value]
+               (and (map? value)
+                    (contains? value ::state/cells)))
+  :component root-component})

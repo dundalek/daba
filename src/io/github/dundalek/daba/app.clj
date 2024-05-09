@@ -28,23 +28,6 @@
 
 (p/register! #'frame/dispatch)
 
-(defn cells->tap-list [cells]
-  (->> cells
-       (map (fn [[cell-id v]]
-              (pv/default v ::dv/removable-item
-                          {:cell-id cell-id
-                           :wrapped-meta (assoc (meta v)
-                                                ::dv/cell-id cell-id)})))))
-
-(defonce !taps
-  (let [!taps (atom nil)
-        watcher (fn [_ _ _old-state new-state]
-                  (reset! !taps (cells->tap-list (::state/cells new-state))))]
-    ;; Poor man's subscription
-    (add-watch !app-db ::taps watcher)
-    (watcher nil nil nil @!app-db)
-    !taps))
-
 (defn submit [value]
   (frame/dispatch (event2/tap-submitted value)))
 
@@ -53,7 +36,6 @@
 
 (defn query->columns [value]
   (-> (meta value)
-      ::dv/removable-item :wrapped-meta
       ::pv/table :columns))
 
 (defn clear-values
@@ -82,7 +64,7 @@ create table address (
 )"])
 
   (do
-    (def p (p/open {:value !taps
+    (def p (p/open {:value !app-db
                     :on-load load-viewers}))
     (add-tap #'submit))
 
