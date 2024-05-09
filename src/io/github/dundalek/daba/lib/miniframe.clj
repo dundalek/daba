@@ -14,6 +14,21 @@
       (let [fx-handler (get effects fx-name)]
         (fx-handler arg)))))
 
+(defn- drain-event-queue! [frame]
+  (let [{:keys [app-db !queue] event-handlers :event} frame]
+    (loop []
+      (when-some [event (peek (first (swap-vals! !queue pop)))]
+        (let [[event-name arg] event
+              handler (get event-handlers event-name)
+              ctx {:db @app-db}]
+          (binding [*queued-fx* nil]
+            (let [ctx (handler ctx arg)
+                  f *queued-fx*]
+              (run-effects! ctx frame)
+              (when (some? f)
+                (f)))))
+        (recur)))))
+
 (defn db-handler [handler]
   (fn [ctx arg]
     (let [db (handler (:db ctx) arg)]
@@ -24,19 +39,13 @@
   handler)
 
 (defn dispatch [frame event]
-  (let [{:keys [app-db] events :event} frame
-        [event-name arg] event
-        handler (get events event-name)
-        ctx {:db @app-db}]
-    (binding [*queued-fx* nil]
-      (let [ctx (handler ctx arg)
-            f *queued-fx*]
-        (run-effects! ctx frame)
-        (when (some? f)
-          (f))))))
+  (swap! (:!queue frame) conj event)
+  (drain-event-queue! frame))
 
 (defn make-frame [{:keys [events fx app-db] :as frame-map}]
-  frame-map)
+  (assoc frame-map
+         ;; Warning: unbounded and no backpressure
+         :!queue (atom (clojure.lang.PersistentQueue/EMPTY))))
 
 (defmacro def-handler
   [handler fn-name & args]
