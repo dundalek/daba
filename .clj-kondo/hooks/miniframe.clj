@@ -13,6 +13,11 @@
                           (if (= (:value (second (:children bindings))) '_)
                             []
                             [(api/token-node '_)]))])
+        ;; strict mode, make the handler 3-arity to error when trying to call event handler directly from another event handler
+        ; bindings (api/vector-node
+        ;           (list*
+        ;            (api/token-node '_)
+        ;            (:children bindings)))
         new-node (api/list-node
                   [(api/token-node 'defn)
                    fn-name
