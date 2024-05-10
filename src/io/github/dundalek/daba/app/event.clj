@@ -4,7 +4,8 @@
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.lib.drivers :as drivers]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
-   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]))
+   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]
+   [io.github.dundalek.daba.app.state :as state]))
 
 (declare fx-execute-string-query)
 (declare fx-query-table-data)
@@ -20,6 +21,19 @@
 (def-event-db values-cleared [db _]
   ;; TODO leave datasource input
   (core/clear-cells db))
+
+(def-event-db task-started [db _]
+  (update db ::state/running-tasks inc))
+
+(def-event-db task-completed [db _]
+  (update db ::state/running-tasks dec))
+
+(defmacro with-loading-indicator [& body]
+  `(do (frame/dispatch (task-started))
+       (try
+         ~@body
+         (finally
+           (frame/dispatch (task-completed))))))
 
 (def-event-db tables-request-completed [db {:keys [result dsid]}]
   (core/create-cell db (core/table-list-viewer result {:dsid dsid})))
@@ -142,12 +156,13 @@
       (frame/dispatch (tap-submitted e)))))
 
 (defn fx-request-schemas [dsid]
-  (try
-    (drivers/ensure-loaded! dsid)
-    (let [schemas (dbc/get-schemas dsid)]
-      (if (seq schemas)
-        (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
-        (let [tables (dbc/get-tables dsid nil)]
-          (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))
-    (catch Exception e
-      (frame/dispatch (tap-submitted e)))))
+  (with-loading-indicator
+    (try
+      (drivers/ensure-loaded! dsid)
+      (let [schemas (dbc/get-schemas dsid)]
+        (if (seq schemas)
+          (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
+          (let [tables (dbc/get-tables dsid nil)]
+            (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))
+      (catch Exception e
+        (frame/dispatch (tap-submitted e))))))

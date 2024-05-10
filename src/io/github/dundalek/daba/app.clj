@@ -78,6 +78,8 @@ create table address (
   (p/docs)
 
   (reset! !app-db state/default-state)
+  (swap! !app-db assoc ::state/running-tasks 1)
+  (swap! !app-db assoc ::state/running-tasks 0)
   @!app-db
 
   (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource))

@@ -53,6 +53,40 @@
 (defn merge-style [props style]
   (update props :style #(merge style %)))
 
+(defn set-style-content! [id content]
+  (if-let [style-elem (js/document.getElementById id)]
+    (set! (.-textContent style-elem) content)
+    (let [style-elem (js/document.createElement "style")]
+      (set! (.-id style-elem) id)
+      (set! (.-textContent style-elem) content)
+      (-> (.-head js/document)
+          (.appendChild style-elem)))))
+
+(set-style-content!
+ "io-github-dundalek-daba-styles"
+ "@keyframes io-github-dundalek-daba-loading-animation {
+    0% {
+      left: -60%;
+    }
+    100% {
+      left: 100%;
+    }
+}")
+
+(defn loading-indicator []
+  (let [theme (theme/use-theme)]
+    [s/div {:style {:position "relative"
+                    :overflow "hidden"
+                    :height 3
+                    :margin-top -9
+                    :margin-bottom 6
+                    :background (::c/background2 theme)}}
+     [s/div {:style {:position "absolute"
+                     :height "100%"
+                     :width "40%"
+                     :animation "io-github-dundalek-daba-loading-animation 1s linear infinite"
+                     :background (::c/tag theme)}}]]))
+
 (defn textarea [props]
    ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
    ;; https://github.com/djblue/portal/pull/224
@@ -383,23 +417,26 @@
 ;; - no search matcher, portal does not filter on subcollections and top-level filtering of UI cards does not seem that useful
 ;; - not wrapping with [l/lazy-seq], portal.ui.lazy causes circular depedency, is it useful in top-level?
 (defn root-component [app-db]
-  (let [values (::state/cells app-db)]
-    [container-coll
-     values
-     (map-indexed
-      (fn [index [cell-id value]]
-        (let [value (try
-                      ;; Pass cell-id so complex widgets can reference state when dispatching events.
-                      ;; Wrapping in try-catch to prevent erroring out on primitive values which don't support metadata.
-                      (vary-meta value assoc ::cell-id cell-id)
-                      (catch :default _ignore
-                        value))]
-          ^{:key cell-id}
-          [removable-item {:cell-id cell-id}
-           [select/with-position
-            {:row index :column 0}
-            [ins/with-key cell-id [ins/inspector value]]]]))
-      values)]))
+  (let [{::state/keys [running-tasks cells]} app-db]
+    [:div
+     (when (pos? running-tasks)
+       [loading-indicator])
+     [container-coll
+      cells
+      (map-indexed
+       (fn [index [cell-id value]]
+         (let [value (try
+                        ;; Pass cell-id so complex widgets can reference state when dispatching events.
+                        ;; Wrapping in try-catch to prevent erroring out on primitive values which don't support metadata.
+                       (vary-meta value assoc ::cell-id cell-id)
+                       (catch :default _ignore
+                         value))]
+           ^{:key cell-id}
+           [removable-item {:cell-id cell-id}
+            [select/with-position
+             {:row index :column 0}
+             [ins/with-key cell-id [ins/inspector value]]]]))
+       cells)]]))
 
 (p/register-viewer!
  {:name ::datasource
