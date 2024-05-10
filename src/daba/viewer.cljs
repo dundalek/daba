@@ -220,17 +220,18 @@
 
 (defn schema-list-component [value]
   (let [{::keys [dsid]} (meta value)]
-    [ins/inspector
-     {}
-     (for [item value]
-       (with-meta
-         [:div {:style {:display "flex"
-                        :flex-direction "row"
-                        :align-items "center"}}
-          [:div {:style {:flex-grow 1}}
-           (:table-schem item)]
-          [schema-list-actions {:schema item :dsid dsid}]]
-         {::pv/default ::pv/hiccup}))]))
+    [ins/toggle-bg
+     [ins/inspector
+      {}
+      (for [item value]
+        (with-meta
+          [:div {:style {:display "flex"
+                         :flex-direction "row"
+                         :align-items "center"}}
+           [:div {:style {:flex-grow 1}}
+            (:table-schem item)]
+           [schema-list-actions {:schema item :dsid dsid}]]
+          {::pv/default ::pv/hiccup}))]]))
 
 (defn table-item-component [item]
   (let [{::keys [dsid]} (meta item)
