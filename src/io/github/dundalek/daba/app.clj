@@ -55,7 +55,7 @@
 (comment
   (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def dsid "jdbc:duckdb:tmp/duck-data") ; on disk
-  (def dsid {:dbtype "h2" :dbname "tmp/example"})
+  (def dsid {:dbtype "h2" :dbname "./tmp/example"})
 
   (def ds (jdbc/get-datasource dsid))
 
@@ -68,7 +68,8 @@ create table address (
 
   (do
     (def p (open))
-    (add-tap #'submit))
+    (add-tap #'submit)
+    (tap> (pv/default "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite" ::dv/datasource)))
 
   (load-viewers)
 
@@ -82,11 +83,11 @@ create table address (
   (swap! !app-db assoc ::state/running-tasks 0)
   @!app-db
 
+  (tap> (pv/default dsid ::dv/datasource))
   (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource))
   (tap> (pv/default {:jdbcUrl ""} ::dv/datasource))
-  (tap> (pv/default dsid ::dv/datasource))
 
-  (tap> (pv/default {:jdbcUrl dsid} ::dv/datasource-input))
+  (tap> (pv/default dsid ::dv/datasource-input))
 
   (tap>
    ["sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite"

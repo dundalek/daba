@@ -2,7 +2,6 @@
   (:require
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
-   [io.github.dundalek.daba.lib.drivers :as drivers]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
    [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]
    [io.github.dundalek.daba.app.state :as state]))
@@ -80,7 +79,7 @@
    (try
      (let [tables (dbc/get-columns dsid table)]
        (frame/dispatch (columns-request-completed {:result tables :dsid dsid})))
-     (catch Exception e
+     (catch Throwable e
        (frame/dispatch (tap-submitted e))))))
 
 (def-event-db table-data-query-completed [db {:keys [cell-id result query dsid]}]
@@ -129,9 +128,9 @@
    (query-execution-completed
     {:cell-id cell-id
      :result (try
-               (drivers/ensure-loaded! dsid)
+               ; (drivers/ensure-loaded! dsid)
                (dbc/execute-string-query dsid query)
-               (catch Exception e
+               (catch Throwable e
                  (core/wrap-exception e)))
      ;; TODO query and dsid redundant
      :query query
@@ -142,7 +141,7 @@
    (table-data-query-completed
     {:cell-id cell-id
      :result (try (dbc/execute-structured-query dsid query)
-                  (catch Exception e
+                  (catch Throwable e
                     (core/wrap-exception e)))
      ;; TODO query and dsid redundant
      :query query
@@ -152,17 +151,18 @@
   (try
     (let [tables (dbc/get-tables dsid schema)]
       (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))
-    (catch Exception e
+    (catch Throwable e
       (frame/dispatch (tap-submitted e)))))
 
 (defn fx-request-schemas [dsid]
-  (with-loading-indicator
-    (try
-      (drivers/ensure-loaded! dsid)
-      (let [schemas (dbc/get-schemas dsid)]
-        (if (seq schemas)
-          (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
-          (let [tables (dbc/get-tables dsid nil)]
-            (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))
-      (catch Exception e
-        (frame/dispatch (tap-submitted e))))))
+  (future
+    (with-loading-indicator
+      (try
+         ; (drivers/ensure-loaded! dsid)
+        (let [schemas (dbc/get-schemas dsid)]
+          (if (seq schemas)
+            (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
+            (let [tables (dbc/get-tables dsid nil)]
+              (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))
+        (catch Throwable e
+          (frame/dispatch (tap-submitted e)))))))

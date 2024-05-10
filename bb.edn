@@ -1,3 +1,4 @@
-{:tasks {test (clojure "-M:test --watch")
+{:tasks {dev (clojure "-M:drivers:repl")
+         test (clojure "-M:test --watch")
          test:once (clojure "-M:test")
          test:coverage (clojure "-M:test:coverage")}}
