@@ -34,6 +34,20 @@
          (finally
            (frame/dispatch (task-completed))))))
 
+(defn schedule-async-call [f]
+  ;; For now just firing off futures, might consider some thread pooling later.
+  ;; Also there are potential races of queries within cells,
+  ;; might consider queuing tasks by cell id to execute them serialy.
+  (future
+    (with-loading-indicator
+      (try
+        (f)
+        (catch Throwable e
+          (frame/dispatch (tap-submitted e)))))))
+
+(defmacro schedule-async [& body]
+  `(schedule-async-call (fn [] ~@body)))
+
 (def-event-db tables-request-completed [db {:keys [result dsid]}]
   (core/create-cell db (core/table-list-viewer result {:dsid dsid})))
 
@@ -76,11 +90,9 @@
 
 (def-event-db table-columns-inspected [_db {:keys [dsid table]}]
   (fx!
-   (try
-     (let [tables (dbc/get-columns dsid table)]
-       (frame/dispatch (columns-request-completed {:result tables :dsid dsid})))
-     (catch Throwable e
-       (frame/dispatch (tap-submitted e))))))
+   (schedule-async
+    (let [tables (dbc/get-columns dsid table)]
+      (frame/dispatch (columns-request-completed {:result tables :dsid dsid}))))))
 
 (def-event-db table-data-query-completed [db {:keys [cell-id result query dsid]}]
   (core/set-cell db cell-id
@@ -124,45 +136,41 @@
     (core/set-cell db cell-id viewer)))
 
 (defn fx-execute-string-query [{:keys [cell-id dsid query]}]
-  (frame/dispatch
-   (query-execution-completed
-    {:cell-id cell-id
-     :result (try
-               ; (drivers/ensure-loaded! dsid)
-               (dbc/execute-string-query dsid query)
-               (catch Throwable e
-                 (core/wrap-exception e)))
-     ;; TODO query and dsid redundant
-     :query query
-     :dsid dsid})))
+  (schedule-async
+   (frame/dispatch
+    (query-execution-completed
+     {:cell-id cell-id
+      :result (try
+                #_(drivers/ensure-loaded! dsid)
+                (dbc/execute-string-query dsid query)
+                (catch Throwable e
+                  (core/wrap-exception e)))
+       ;; TODO query and dsid redundant
+      :query query
+      :dsid dsid}))))
 
 (defn fx-query-table-data [{:keys [cell-id dsid query]}]
-  (frame/dispatch
-   (table-data-query-completed
-    {:cell-id cell-id
-     :result (try (dbc/execute-structured-query dsid query)
-                  (catch Throwable e
-                    (core/wrap-exception e)))
-     ;; TODO query and dsid redundant
-     :query query
-     :dsid dsid})))
+  (schedule-async
+   (frame/dispatch
+    (table-data-query-completed
+     {:cell-id cell-id
+      :result (try (dbc/execute-structured-query dsid query)
+                   (catch Throwable e
+                     (core/wrap-exception e)))
+       ;; TODO query and dsid redundant
+      :query query
+      :dsid dsid}))))
 
 (defn fx-request-tables [{:keys [dsid schema]}]
-  (try
-    (let [tables (dbc/get-tables dsid schema)]
-      (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))
-    (catch Throwable e
-      (frame/dispatch (tap-submitted e)))))
+  (schedule-async
+   (let [tables (dbc/get-tables dsid schema)]
+     (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))
 
 (defn fx-request-schemas [dsid]
-  (future
-    (with-loading-indicator
-      (try
-         ; (drivers/ensure-loaded! dsid)
-        (let [schemas (dbc/get-schemas dsid)]
-          (if (seq schemas)
-            (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
-            (let [tables (dbc/get-tables dsid nil)]
-              (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))
-        (catch Throwable e
-          (frame/dispatch (tap-submitted e)))))))
+  (schedule-async
+   #_(drivers/ensure-loaded! dsid)
+   (let [schemas (dbc/get-schemas dsid)]
+     (if (seq schemas)
+       (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
+       (let [tables (dbc/get-tables dsid nil)]
+         (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))))
