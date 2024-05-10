@@ -1,4 +1,5 @@
-(ns io.github.dundalek.daba.lib.miniframe)
+(ns io.github.dundalek.daba.lib.miniframe
+  (:import (java.util.concurrent.locks ReentrantLock)))
 
 (defonce !event-registry (atom {}))
 (defonce !fx-registry (atom {}))
@@ -15,9 +16,9 @@
         (fx-handler arg)))))
 
 (defn- drain-event-queue! [frame]
-  (let [{:keys [app-db !queue] event-handlers :event} frame]
+  (let [{:keys [app-db] ::keys [!event-queue] event-handlers :event} frame]
     (loop []
-      (when-some [event (peek (first (swap-vals! !queue pop)))]
+      (when-some [event (peek (first (swap-vals! !event-queue pop)))]
         (let [[event-name arg] event
               handler (get event-handlers event-name)
               ctx {:db @app-db}]
@@ -39,13 +40,21 @@
   handler)
 
 (defn dispatch [frame event]
-  (swap! (:!queue frame) conj event)
-  (drain-event-queue! frame))
+  (let [{::keys [processing-lock !event-queue]} frame]
+    (swap! !event-queue conj event)
+
+    (when (.tryLock processing-lock)
+      (try
+        (when (= (.getHoldCount processing-lock) 1)
+          (drain-event-queue! frame))
+        (finally
+          (.unlock processing-lock))))))
 
 (defn make-frame [{:keys [events fx app-db] :as frame-map}]
   (assoc frame-map
          ;; Warning: unbounded and no backpressure
-         :!queue (atom (clojure.lang.PersistentQueue/EMPTY))))
+         ::!event-queue (atom (clojure.lang.PersistentQueue/EMPTY))
+         ::processing-lock (ReentrantLock.)))
 
 (defmacro def-handler
   [handler fn-name & args]
