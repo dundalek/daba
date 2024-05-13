@@ -375,8 +375,10 @@
                    :align-items "flex-start"
                    :gap 6
                    ;; Add extra padding to avoid overlapping with portal's atom indicator
-                   :padding-right 36}}
-     [:div {:style {:flex-grow 1}}
+                   :padding-right 36
+                   :max-width "calc(100vw - 80px)"}}
+     [:div {:style {:flex-grow 1
+                    :overflow-x "auto"}}
       child]
      [:div
       ;; margin to offset inspector border to make the remove button look aligned
