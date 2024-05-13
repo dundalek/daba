@@ -17,9 +17,10 @@
 (def-event-db tap-removed [db cell-id]
   (core/remove-cell db cell-id))
 
-(def-event-db values-cleared [db _]
-  ;; TODO leave datasource input
-  (core/clear-cells db))
+(def-event-db values-cleared [_ _]
+  (-> state/default-state
+      ;; Always have one datasource input when values are cleared
+      (core/create-cell (core/datasource-input-viwer ""))))
 
 (def-event-db task-started [db _]
   (update db ::state/running-tasks inc))

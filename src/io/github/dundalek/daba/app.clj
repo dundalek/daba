@@ -33,6 +33,9 @@
   (-> (meta value)
       ::pv/table :columns))
 
+(defn inspect-datasource [db-spec]
+  (frame/dispatch (event/datasource-edit-triggered db-spec)))
+
 (defn clear-values
   ([] (clear-values nil identity))
   ([_request done]
@@ -42,12 +45,6 @@
       (frame/dispatch (event/values-cleared))
       (done nil)))))
 
-(p/register! #'frame/dispatch)
-(pruntime/register! #'clear-values {:name `pruntime/clear-values})
-
-(defn inspect-datasource [db-spec]
-  (frame/dispatch (event/datasource-edit-triggered db-spec)))
-
 (defn open
   ([] (open nil))
   ([opts]
@@ -56,6 +53,9 @@
                   opts))
    ;; Open initial datasource input to serve as entrypoint
    (inspect-datasource "")))
+
+(pruntime/register! #'frame/dispatch)
+(pruntime/register! #'clear-values {:name `pruntime/clear-values})
 
 (comment
   (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
