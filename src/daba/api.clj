@@ -1,32 +1,18 @@
 (ns daba.api
   (:require
-   [portal.api :as p]))
-
-(defn on-load []
-  (p/eval-str (slurp "examples/portal-present/src/portal_present/viewer.cljs")))
+   [io.github.dundalek.daba.app :as app]))
 
 (defn open
   ([] (open nil))
   ([opts]
-   (p/open (merge {:on-load (fn [])}
-                  opts))))
+   (app/open opts)))
 
-(comment
-  (inspect "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
+(defn submit [value]
+  (app/submit value))
 
-  (inspect (System/getenv "POSTGRES_URI"))
+(defn inspect
+  ([] (inspect ""))
+  ([db-spec] (app/inspect-datasource db-spec)))
 
-  (require '[portal.api :as p])
-
-  (def p (p/open))
-  (p/clear)
-  (p/close)
-
-  (add-tap #'p/submit)
-  (remove-tap #'p/submit)
-  (tap> :hello)
-  (prn @p)
-
-  (p/docs))
-
-
+(defn query->columns [value]
+  (app/query->columns value))
