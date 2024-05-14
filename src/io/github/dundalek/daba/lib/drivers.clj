@@ -85,19 +85,19 @@ For now decided to throw in a towel and bundle common drivers by default and add
     (loop []
       (when (.hasMoreElements drivers)
         (let [driver (.nextElement drivers)
-              driver (if (instance? DriverShim driver)
-                       (.getDriver driver)
-                       driver)]
+              #_#_driver (if (instance? DriverShim driver)
+                           (.getDriver driver)
+                           driver)]
           (if (= driver-class-name (-> driver .getClass .getName))
             true
             (recur)))))))
 
 (defn ensure-driver-registered! [dbtype]
-  (when-some [driver-class (load-driver-class dbtype)]
-    (when-not (driver-registered? (.getName driver-class))
-      (let [^Driver driver (.newInstance driver-class)
-            shim (DriverShim. driver)]
-        (DriverManager/registerDriver shim)))))
+  #_(when-some [driver-class (load-driver-class dbtype)]
+      (when-not (driver-registered? (.getName driver-class))
+        (let [^Driver driver (.newInstance driver-class)
+              shim (DriverShim. driver)]
+          (DriverManager/registerDriver shim)))))
 
 (defn ensure-dynamic-context-classloader! []
   (let [cl (.getContextClassLoader (Thread/currentThread))]
