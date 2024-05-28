@@ -1,7 +1,4 @@
-
 # Daba Database Client
-
-## Intro
 
 Daba is a graphical database client built on top of [Portal](https://github.com/djblue/portal).
 
@@ -12,14 +9,24 @@ Start with initial exploration of database schema and data visually, then manipu
 
 ## Getting Started
 
-Use without installing
+#### Use without installing
 
 ```
-clojure -Sdeps '{:deps{io.github.dundalek/daba{:git/tag"v0.1.0":git/sha"c0de"}}}' -X daba.api/open
+clojure -Sdeps '{:deps{io.github.dundalek/daba{:git/tag"v0.1.0":git/sha"c0de"}}}' \
+        -X daba.api/open
 ```
 
+<!--
+```
+clojure -Sdeps '{:deps{io.github.dundalek/daba{:mvn/version"0.1.0"}}}' -X daba.api/open 
+```
 
-Install as tool
+```
+clojure -Sdeps '{:deps{io.github.dundalek/daba-cli{:mvn/version"0.1.0"}}}' -X daba.api/open 
+```
+-->
+
+#### Install as tool
 
 ```
 clojure -Ttools install-latest :lib io.github.dundalek/daba :as daba
@@ -30,22 +37,26 @@ would it be possible to omit `:as`?
 clojure -Ttools install-latest :lib io.github.dundalek/daba
 ```
 
-`clojure -Tdaba open`
+```
+clojure -Tdaba open
+````
 
-Install by adding alias
+#### Install by adding alias
 
 `~/.clojure/deps.edn` to `:aliases` section
 
 ```clojure
 {:aliases
  {:daba
-  {:extra-deps ...
+  {:extra-deps {io.github.dundalek/daba {:git/tag "v0.1.0" :git/sha "c0de"}}
    :exec-fn daba.api/open}}}
 ```
 
-`clojure -Xdaba`
+```
+clojure -Xdaba
+```
 
-can also add drivers
+Using this way one can also include additional JDBC drivers.
 
 ## Features
 
@@ -75,8 +86,8 @@ can also add drivers
 - DuckDB
 - H2
 
-And likely other databases that provide JDBC driver
+And likely other databases that provide a JDBC driver.
 
 ## API
 
-open
+See [example/user.clj](example/user.clj) which includes examples using the API from REPL.
