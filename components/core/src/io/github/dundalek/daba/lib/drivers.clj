@@ -22,7 +22,7 @@ Workaround approaches:
 
 For now decided to throw in a towel and bundle common drivers by default and additional ones need to be added to deps."
   (:require
-   [clojure.repl.deps :as deps]
+   ; [clojure.repl.deps :as deps]
    [clojure.string :as str]
    [next.jdbc :as jdbc]
    [next.jdbc.connection :as connection])
@@ -104,19 +104,19 @@ For now decided to throw in a towel and bundle common drivers by default and add
     (when-not (instance? clojure.lang.DynamicClassLoader cl)
       (.setContextClassLoader (Thread/currentThread) (clojure.lang.DynamicClassLoader. cl)))))
 
-(defn ensure-loaded! [db-spec]
-  ;; wrap in future-call-conveying-classloader
-  (when-not (detect-driver-available-using-connection? db-spec)
-    (let [dbtype (->> (db-spec->dbtype db-spec))]
-      (when-some [coords (get libs dbtype)]
-        ;; extra insurance to avoid "Context classloader is not a DynamicClassLoader" error
-        ; (ensure-dynamic-context-classloader!)
-        (binding [*repl* true]
-          ;; could consider `deps/add-lib` with single argument to always fetch latest
-          (deps/add-libs coords))
+#_(defn ensure-loaded! [db-spec]
+    ;; wrap in future-call-conveying-classloader
+    (when-not (detect-driver-available-using-connection? db-spec)
+      (let [dbtype (->> (db-spec->dbtype db-spec))]
+        (when-some [coords (get libs dbtype)]
+          ;; extra insurance to avoid "Context classloader is not a DynamicClassLoader" error
+          ; (ensure-dynamic-context-classloader!)
+          (binding [*repl* true]
+            ;; could consider `deps/add-lib` with single argument to always fetch latest
+            (deps/add-libs coords))
 
-        ; (print-manager-drivers)
-        (ensure-driver-registered! dbtype)))))
+          ; (print-manager-drivers)
+          (ensure-driver-registered! dbtype)))))
         ; (print-manager-drivers)
 
 (defn future-call-conveying-classloader [f]
