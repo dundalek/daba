@@ -14,11 +14,11 @@
   (app/submit value))
 
 (defn inspect
-  "Pass a next.jdbc db-spec value to add a datasource view value that can be used as an entrypoint to explore the database."
+  "Add a datasource view value that can be used as an entrypoint to explore the database. Pass a next.jdbc db-spec value."
   ([] (inspect ""))
   ([db-spec] (app/inspect-datasource db-spec)))
 
 (defn query->columns
-  "Helper which extracts sequence of columns with order based on the query result."
+  "Extract sequence of columns with order based on the query result."
   [value]
   (app/query->columns value))

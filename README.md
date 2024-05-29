@@ -90,4 +90,4 @@ And likely other databases that provide a JDBC driver.
 
 ## API
 
-See [example/user.clj](example/user.clj) which includes examples using the API from REPL.
+See [API.md](doc/API.md) and [example/user.clj](example/user.clj) which includes examples using the API from REPL.
