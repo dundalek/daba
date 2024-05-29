@@ -5,7 +5,9 @@ Daba is a graphical database client built on top of [Portal](https://github.com/
 It aims to combine some of the convenience of traditional GUI clients with the extensibility and power of [REPL](https://clojure.org/guides/repl/introduction)-based workflows.
 Start with initial exploration of database schema and data visually, then manipulate results further programmatically via REPL.
 
-[screenshot here]
+| Explore schema | Query and visualize |
+| - | - |
+| ![Explore schema](doc/img/demo1.png) | ![Query and visualize](doc/img/demo2.png) |
 
 ## Getting Started
 
