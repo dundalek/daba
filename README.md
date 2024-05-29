@@ -14,7 +14,7 @@ Start with initial exploration of database schema and data visually, then manipu
 #### Use without installing
 
 ```
-clojure -Sdeps '{:deps{io.github.dundalek/daba{:git/tag"v0.1.0":git/sha"c0de"}}}' \
+clojure -Sdeps '{:deps{io.github.dundalek/daba{:git/tag"v0.1.0":git/sha"f2c76ca"}}}' \
         -X daba.api/open
 ```
 
@@ -60,7 +60,7 @@ clojure -Tdaba open
 ```clojure
 {:aliases
  {:daba
-  {:extra-deps {io.github.dundalek/daba {:git/tag "v0.1.0" :git/sha "c0de"}}
+  {:extra-deps {io.github.dundalek/daba {:git/tag "v0.1.0" :git/sha "f2c76ca"}}
    :exec-fn daba.api/open}}}
 ```
 
