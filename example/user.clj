@@ -37,7 +37,7 @@
 
   (tap>
    (->> (str/split (slurp "example/queries.sql") #"\n\n+")
-        (map #(pv/default % ::dv/query-editor))))
+        (map #(pv/default % ::dv/query))))
 
   (tap>
    (pv/vega-lite

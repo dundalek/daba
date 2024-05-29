@@ -48,11 +48,11 @@
 (defn open
   ([] (open nil))
   ([opts]
+   ;; Open initial datasource input to serve as entrypoint
+   (inspect-datasource "")
    (p/open (merge {:value !app-db
                    :on-load load-viewers}
-                  opts))
-   ;; Open initial datasource input to serve as entrypoint
-   (inspect-datasource "")))
+                  opts))))
 
 (pruntime/register! #'frame/dispatch)
 (pruntime/register! #'clear-values {:name `pruntime/clear-values})
