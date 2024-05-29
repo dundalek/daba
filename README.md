@@ -31,13 +31,23 @@ clojure -Sdeps '{:deps{io.github.dundalek/daba-cli{:mvn/version"0.1.0"}}}' -X da
 #### Install as tool
 
 ```
+clojure -Ttools install io.github.dundalek/daba '{:git/tag"v0.1.0"}' :as daba
+```
+
+<!--
+```
 clojure -Ttools install-latest :lib io.github.dundalek/daba :as daba
 ```
+
+Getting error: "Namespace clojure.tools.tools.api loaded but function not found: install-latest"
 
 would it be possible to omit `:as`?
 ```
 clojure -Ttools install-latest :lib io.github.dundalek/daba
 ```
+-->
+
+Then run:
 
 ```
 clojure -Tdaba open
@@ -54,6 +64,7 @@ clojure -Tdaba open
    :exec-fn daba.api/open}}}
 ```
 
+Then run:
 ```
 clojure -Xdaba
 ```
