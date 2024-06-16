@@ -128,9 +128,15 @@
                           (on-offset-change (+ offset limit)))}
       (tr ["next"])]]))
 
+(defn wrapped-error? [value]
+  (and (map? value) (::error value)))
+
+(defn error-viewer [value]
+  [ins/inspector {} (::error value)])
+
 (defn paginated-table-results [{:keys [on-offset-change offset limit value]}]
-  (if (and (map? value) (::error value))
-    [ins/inspector {} (::error value)]
+  (if (wrapped-error? value)
+    [error-viewer value]
     [:div
      (when (seq value)
        [ins/inspector
@@ -189,6 +195,38 @@
                                 :limit limit
                                 :on-offset-change on-offset-change
                                 :value value}]]]))
+
+(defn datomic-results [{:keys [value]}]
+  (if (wrapped-error? value)
+    [error-viewer value]
+    (when (seq value)
+      [ins/inspector
+       {::pv/default ::pv/table}
+       (with-meta value {})])))
+
+(defn datomic-query-editor-component [value]
+  (let [{::keys [datomic-query-editor cell-id dsid]} (meta value)
+        {:keys [query]} datomic-query-editor]
+    [ins/inspector
+     {::pv/default ::pv/hiccup}
+     [:div
+      [:form {:on-submit (fn [ev]
+                           (.preventDefault ev)
+                           (.stopPropagation ev)
+                           (let [query (-> ev .-target .-query .-value)]
+                             (dispatch `event/datomic-query-editor-executed
+                                       {:cell-id cell-id
+                                        :dsid dsid
+                                        :query query})))
+              :style {:display "flex"
+                      :gap 6}}
+       [textarea {:name "query"
+                  :default-value (pr-str query)
+                  :style {:flex-grow 1}}]
+       [button {:type "submit"
+                :name "execute"}
+        (tr ["execute"])]]
+      [datomic-results {:value value}]]]))
 
 (defn query-component [statement]
   [:form {:on-submit (fn [ev]
@@ -290,6 +328,90 @@
              item-meta)))
        {::pv/default ::pv/table
         ::pv/table {:columns [:column-name :type-name :nullable :info]}})]))
+
+(def ^:private datomic-schema-table-opts
+  {:columns [;; Showing the action column first so it does not get hidden due to horizontal scrolling
+             :action
+
+             :db/ident
+             :db/valueType
+             :db/cardinality
+
+             :db/unique
+             :db/isComponent
+             :db/fulltext
+
+             :db/doc
+             #_:db/id]})
+
+(defn datomic-attribute-list [value]
+  (let [item-meta {::pv/for {:action ::pv/hiccup}}]
+    [ins/inspector
+     {}
+     (with-meta
+       (for [item value]
+         (with-meta
+           (assoc item :action
+                  [:div
+                   [button
+                    {:on-click (fn [ev]
+                                 (let [{::keys [dsid]} (meta value)]
+                                   (.stopPropagation ev)
+                                   (dispatch `event/datomic-attribute-inspected
+                                             {:dsid dsid :attribute (:db/ident item)})))}
+                    (tr ["data"])]])
+           item-meta))
+       {::pv/default ::pv/table
+        ::pv/table datomic-schema-table-opts})]))
+
+(defn datomic-namespace-list [value]
+  [ins/inspector
+   {}
+   (with-meta
+     (->> value
+          (group-by (fn [x]
+                      (or (namespace (:db/ident x)) "")))
+          (sort-by key)
+          (map (fn [[k v]]
+                 {:namespace k
+                  :attributes v})))
+     (assoc (meta value)
+            ::pv/default ::pv/table
+            ::pv/table {:columns [:namespace :attributes]}))])
+
+(defn datomic-database-list-actions [{:keys [dsid db-name]}]
+  [:div {:style {:display "flex"
+                 :gap 6}}
+   [button
+    {:on-click (fn [ev]
+                 (.stopPropagation ev)
+                 (dispatch `event/datomic-database-inspected {:dsid dsid :db-name db-name}))}
+    (tr ["namespaces"])]
+   [button
+    {:on-click (fn [ev]
+                 (.stopPropagation ev)
+                 (dispatch `event/datomic-database-attributes-inspected {:dsid dsid :db-name db-name}))}
+    (tr ["attributes"])]
+   [button
+    {:on-click (fn [ev]
+                 (.stopPropagation ev)
+                 (dispatch `event/datomic-query-triggered {:dsid dsid :db-name db-name}))}
+    (tr ["query"])]])
+
+(defn datomic-database-list [value]
+  (let [{::keys [dsid]} (meta value)]
+    [ins/toggle-bg
+     [ins/inspector
+      {}
+      (for [item value]
+        (with-meta
+          [:div {:style {:display "flex"
+                         :flex-direction "row"
+                         :align-items "center"}}
+           [:div {:style {:flex-grow 1}}
+            item]
+           [datomic-database-list-actions {:db-name item :dsid dsid}]]
+          {::pv/default ::pv/hiccup}))]]))
 
 (defn table-item? [value]
   (and (map? value)
@@ -487,6 +609,27 @@
   :component column-list-component})
 
 (p/register-viewer!
+ {:name ::datomic-attribute-list
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (= (::pv/default (meta value)) ::datomic-attribute-list)))
+  :component datomic-attribute-list})
+
+(p/register-viewer!
+ {:name ::datomic-namespace-list
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (= (::pv/default (meta value)) ::datomic-namespace-list)))
+  :component datomic-namespace-list})
+
+(p/register-viewer!
+ {:name ::datomic-database-list
+  :predicate (fn [value]
+               (and (sequential? value)
+                    (= (::pv/default (meta value)) ::datomic-database-list)))
+  :component datomic-database-list})
+
+(p/register-viewer!
  {:name ::query
   :predicate (fn [value]
                (string? value))
@@ -497,6 +640,12 @@
   :predicate (fn [value]
                (contains? (meta value) ::query-editor))
   :component query-editor-component})
+
+(p/register-viewer!
+ {:name ::datomic-query-editor
+  :predicate (fn [value]
+               (contains? (meta value) ::datomic-query-editor))
+  :component datomic-query-editor-component})
 
 (p/register-viewer!
  {:name ::datagrid

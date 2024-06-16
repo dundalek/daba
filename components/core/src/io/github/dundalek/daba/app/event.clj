@@ -2,9 +2,10 @@
   (:require
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
+   [io.github.dundalek.daba.app.state :as state]
+   [io.github.dundalek.daba.lib.datomic :as datomic]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
-   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]
-   [io.github.dundalek.daba.app.state :as state]))
+   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]))
 
 (declare fx-execute-string-query)
 (declare fx-query-table-data)
@@ -54,6 +55,69 @@
 
 (def-event-db schemas-request-completed [db {:keys [result dsid]}]
   (core/create-cell db (core/schema-list-viewer result {:dsid dsid})))
+
+(def-event-db datomic-databases-request-completed [db {:keys [result dsid]}]
+  (core/create-cell db (core/datomic-databases-viewer result {:dsid dsid})))
+
+(def-event-db datomic-request-completed [db cell-value]
+  (core/create-cell db cell-value))
+
+(def-event-db datomic-database-inspected [_db {:keys [dsid db-name]}]
+  (let [dsid {:client-args dsid
+              :connection-args {:db-name db-name}}]
+    (fx!
+     (schedule-async
+      (frame/dispatch
+       (datomic-request-completed
+        (core/datomic-database-namespaces-viewer
+         (datomic/get-schema dsid)
+         {:dsid dsid})))))))
+
+(def-event-db datomic-attribute-inspected [_db {:keys [dsid attribute]}]
+  (fx!
+   (schedule-async
+    (frame/dispatch
+     (datomic-request-completed
+      (datomic/inspect-attribute dsid attribute))))))
+
+(def-event-db datomic-database-attributes-inspected [_db {:keys [dsid db-name]}]
+  (let [dsid {:client-args dsid
+              :connection-args {:db-name db-name}}]
+    (fx!
+     (schedule-async
+      (frame/dispatch
+       (datomic-request-completed
+        (core/datomic-database-attributes-viewer
+         (datomic/get-schema dsid)
+         {:dsid dsid})))))))
+
+(def-event-db datomic-query-triggered [db {:keys [dsid db-name]}]
+  (let [dsid {:client-args dsid
+              :connection-args {:db-name db-name}}]
+    (core/create-cell db (core/datomic-query-editor-viewer
+                          []
+                          {:dsid dsid
+                           :query core/datomic-default-query}))))
+
+(def-event-db datomic-query-execution-completed [db {:keys [cell-id result query dsid]}]
+  (core/set-cell db cell-id
+                 (core/datomic-query-editor-viewer result {:query query :dsid dsid})))
+
+(def-event-db datomic-query-editor-executed [_db {:keys [cell-id dsid query]}]
+  ;; dsid might be redundant, likely could read it from cell value
+  (let [query (core/datomic-coerce-query query)]
+    (fx!
+     (schedule-async
+      (frame/dispatch
+       (datomic-query-execution-completed
+        {:cell-id cell-id
+         :result (try
+                   (datomic/query dsid query)
+                   (catch Throwable e
+                     (core/wrap-exception e)))
+          ;; TODO query and dsid redundant
+         :query query
+         :dsid dsid}))))))
 
 (def-event-db datasource-edit-triggered [db value]
   (core/create-cell db (core/datasource-input-viwer value)))
@@ -170,8 +234,12 @@
 (defn fx-request-schemas [dsid]
   (schedule-async
    #_(drivers/ensure-loaded! dsid)
-   (let [schemas (dbc/get-schemas dsid)]
-     (if (seq schemas)
-       (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
-       (let [tables (dbc/get-tables dsid nil)]
-         (frame/dispatch (tables-request-completed {:result tables :dsid dsid})))))))
+   (if (core/datomic-datasource? dsid)
+     (frame/dispatch (datomic-databases-request-completed
+                      {:dsid dsid
+                       :result (datomic/get-databases dsid)}))
+     (let [schemas (dbc/get-schemas dsid)]
+       (if (seq schemas)
+         (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
+         (let [tables (dbc/get-tables dsid nil)]
+           (frame/dispatch (tables-request-completed {:result tables :dsid dsid}))))))))

@@ -11,6 +11,8 @@
 ;; Trying out if some sample query would be useful instead of empty string?
 (def default-input-query "select * from mytable")
 
+(def datomic-default-query '{:find [?e] :where [[?e :my/attr "foo"]]})
+
 (defn next-cell-id [db]
   (let [{::state/keys [next-cell-id]} db]
     [(assoc db ::state/next-cell-id (inc next-cell-id))
@@ -61,11 +63,23 @@
                     (str "jdbc:" db-spec)
                     db-spec)})))
 
+(defn datomic-datasource? [db-spec]
+  (some? (#{:datomic-local :cloud} (:server-type db-spec))))
+
 (defn coerce-query [query]
   (merge {:offset 0 :limit default-page-size}
          (if (string? query)
            {:statement query}
            query)))
+
+(defn datomic-coerce-query [query]
+  (if (string? query)
+    (try
+      (let [parsed (edn/read-string query)]
+        parsed)
+      (catch Exception _ignore
+        nil))
+    query))
 
 (defn table-data-query [table]
   {:table table
@@ -121,3 +135,25 @@
       (pv/default ::dv/column-list)
       (vary-meta assoc ::dv/dsid dsid)))
 
+(defn datomic-database-attributes-viewer [attributes {:keys [dsid]}]
+  (-> attributes
+      (pv/default ::dv/datomic-attribute-list)
+      (vary-meta assoc ::dv/dsid dsid)))
+
+(defn datomic-databases-viewer [databases {:keys [dsid]}]
+  (-> databases
+      (pv/default ::dv/datomic-database-list)
+      (vary-meta assoc ::dv/dsid dsid)))
+
+(defn datomic-database-namespaces-viewer [databases {:keys [dsid]}]
+  (-> databases
+      (pv/default ::dv/datomic-namespace-list)
+      (vary-meta assoc ::dv/dsid dsid)))
+
+(defn datomic-query-editor-viewer [results {:keys [query dsid]}]
+  (-> results
+      (vary-meta (fn [m]
+                   (assoc m
+                          ::pv/default ::dv/datomic-query-editor
+                          ::dv/datomic-query-editor {:query query}
+                          ::dv/dsid dsid)))))
