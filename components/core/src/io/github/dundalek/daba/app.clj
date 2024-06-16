@@ -57,6 +57,10 @@
 (pruntime/register! #'frame/dispatch)
 (pruntime/register! #'clear-values {:name `pruntime/clear-values})
 
+(defn after-ns-reload []
+  ;; hook for clj-reload
+  (load-viewers))
+
 (comment
   (def dsid "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
   (def dsid "jdbc:duckdb:tmp/duck-data") ; on disk
