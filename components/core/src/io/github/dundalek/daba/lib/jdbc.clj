@@ -114,3 +114,6 @@
                       {:limit limit
                        :offset offset
                        :builder-fn as-maps-with-columns-meta})))
+
+(comment
+  (get-tables "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite" nil))
