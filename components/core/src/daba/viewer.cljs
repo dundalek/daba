@@ -365,19 +365,31 @@
         ::pv/table datomic-schema-table-opts})]))
 
 (defn datomic-namespace-list [value]
-  [ins/inspector
-   {}
-   (with-meta
-     (->> value
-          (group-by (fn [x]
-                      (or (namespace (:db/ident x)) "")))
-          (sort-by key)
-          (map (fn [[k v]]
-                 {:namespace k
-                  :attributes v})))
-     (assoc (meta value)
-            ::pv/default ::pv/table
-            ::pv/table {:columns [:namespace :attributes]}))])
+  (let [item-meta {::pv/for {:action ::pv/hiccup}}]
+    [ins/inspector
+     {}
+     (with-meta
+       (->> value
+            (group-by (fn [x]
+                        (or (namespace (:db/ident x)) "")))
+            (sort-by key)
+            (map (fn [[k v]]
+                   (with-meta
+                     {:namespace k
+                      :attributes v
+                      :action [:div {:style {:display "flex"
+                                             :justify-content "center"}}
+                               [button
+                                {:on-click (fn [ev]
+                                             (let [{::keys [dsid]} (meta value)]
+                                               (.stopPropagation ev)
+                                               (dispatch `event/datomic-namespace-attributes-inspected
+                                                         {:dsid dsid :attributes v})))}
+                                (tr ["attributes"])]]}
+                     item-meta))))
+       (assoc (meta value)
+              ::pv/default ::pv/table
+              ::pv/table {:columns [:namespace :attributes :action]}))]))
 
 (defn datomic-database-list-actions [{:keys [dsid db-name]}]
   [:div {:style {:display "flex"

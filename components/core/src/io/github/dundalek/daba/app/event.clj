@@ -91,6 +91,9 @@
          (datomic/get-schema dsid)
          {:dsid dsid})))))))
 
+(def-event-db datomic-namespace-attributes-inspected [db {:keys [dsid attributes]}]
+  (core/create-cell db (core/datomic-database-attributes-viewer attributes {:dsid dsid})))
+
 (def-event-db datomic-query-triggered [db {:keys [dsid db-name]}]
   (let [dsid {:client-args dsid
               :connection-args {:db-name db-name}}]
