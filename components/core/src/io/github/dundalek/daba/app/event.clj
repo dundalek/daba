@@ -75,13 +75,16 @@
          {:dsid dsid})))))))
 
 (def-event-db datomic-attribute-inspected [_db {:keys [dsid attribute]}]
-  (fx!
-   (schedule-async
-    (frame/dispatch
-     (datomic-request-completed
-      (datomic/query dsid
-                     (core/datomic-coerce-query
-                      (datomic/inspect-attribute-query attribute))))))))
+  (let [query (core/datomic-coerce-query
+               (datomic/inspect-attribute-query attribute))]
+    (fx!
+     (schedule-async
+      (frame/dispatch
+       (datomic-request-completed
+        (core/datomic-query-editor-viewer
+         (datomic/query dsid query)
+         {:dsid dsid
+          :query query})))))))
 
 (def-event-db datomic-database-attributes-inspected [_db {:keys [dsid db-name]}]
   (let [dsid {:client-args dsid
