@@ -196,17 +196,15 @@
                                 :on-offset-change on-offset-change
                                 :value value}]]]))
 
-(defn datomic-results [{:keys [value]}]
-  (if (wrapped-error? value)
-    [error-viewer value]
-    (when (seq value)
-      [ins/inspector
-       {::pv/default ::pv/table}
-       (with-meta value {})])))
-
 (defn datomic-query-editor-component [value]
   (let [{::keys [datomic-query-editor cell-id dsid]} (meta value)
-        {:keys [query]} datomic-query-editor]
+        {query-map :query} datomic-query-editor
+        {:keys [query limit offset]} query-map
+        on-offset-change (fn [new-offset]
+                           (dispatch `event/datomic-query-editor-changed
+                                     {:cell-id cell-id
+                                      :dsid dsid
+                                      :query (assoc query-map :offset new-offset)}))]
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
@@ -226,7 +224,10 @@
        [button {:type "submit"
                 :name "execute"}
         (tr ["execute"])]]
-      [datomic-results {:value value}]]]))
+      [paginated-table-results {:offset offset
+                                :limit limit
+                                :on-offset-change on-offset-change
+                                :value value}]]]))
 
 (defn query-component [statement]
   [:form {:on-submit (fn [ev]

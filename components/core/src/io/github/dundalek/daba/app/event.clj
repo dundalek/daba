@@ -11,6 +11,7 @@
 (declare fx-query-table-data)
 (declare fx-request-tables)
 (declare fx-request-schemas)
+(declare fx-datomic-execute-query)
 
 (def-event-db tap-submitted [db value]
   (core/create-cell db value))
@@ -78,7 +79,9 @@
    (schedule-async
     (frame/dispatch
      (datomic-request-completed
-      (datomic/inspect-attribute dsid attribute))))))
+      (datomic/query dsid
+                     (core/datomic-coerce-query
+                      (datomic/inspect-attribute-query attribute))))))))
 
 (def-event-db datomic-database-attributes-inspected [_db {:keys [dsid db-name]}]
   (let [dsid {:client-args dsid
@@ -100,7 +103,7 @@
     (core/create-cell db (core/datomic-query-editor-viewer
                           []
                           {:dsid dsid
-                           :query core/datomic-default-query}))))
+                           :query (core/datomic-coerce-query core/datomic-default-query)}))))
 
 (def-event-db datomic-query-execution-completed [db {:keys [cell-id result query dsid]}]
   (core/set-cell db cell-id
@@ -110,17 +113,15 @@
   ;; dsid might be redundant, likely could read it from cell value
   (let [query (core/datomic-coerce-query query)]
     (fx!
-     (schedule-async
-      (frame/dispatch
-       (datomic-query-execution-completed
-        {:cell-id cell-id
-         :result (try
-                   (datomic/query dsid query)
-                   (catch Throwable e
-                     (core/wrap-exception e)))
-          ;; TODO query and dsid redundant
-         :query query
-         :dsid dsid}))))))
+     (fx-datomic-execute-query {:cell-id cell-id
+                                :dsid dsid
+                                :query query}))))
+
+(def-event-db datomic-query-editor-changed [_db {:keys [cell-id dsid query]}]
+  (fx!
+   (fx-datomic-execute-query {:cell-id cell-id
+                              :dsid dsid
+                              :query query})))
 
 (def-event-db datasource-edit-triggered [db value]
   (core/create-cell db (core/datasource-input-viwer value)))
@@ -246,3 +247,16 @@
          (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
          (let [tables (dbc/get-tables dsid nil)]
            (frame/dispatch (tables-request-completed {:result tables :dsid dsid}))))))))
+
+(defn fx-datomic-execute-query [{:keys [cell-id dsid query]}]
+  (schedule-async
+   (frame/dispatch
+    (datomic-query-execution-completed
+     {:cell-id cell-id
+      :result (try
+                (datomic/query dsid query)
+                (catch Throwable e
+                  (core/wrap-exception e)))
+      ;; TODO query and dsid redundant
+      :query query
+      :dsid dsid}))))

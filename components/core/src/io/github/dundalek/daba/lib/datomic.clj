@@ -28,14 +28,10 @@
   (let [client (d/client client-args)]
     (d/list-databases client {})))
 
-(defn query [datasource-spec query]
+(defn query [datasource-spec arg-map]
   (let [db (datasource->db datasource-spec)]
-    (d/q {:query query
-          ;; FIXME: parameterize
-          :limit 25
-          :args [db]})))
+    (d/q (assoc arg-map :args [db]))))
 
-(defn inspect-attribute [datasource-spec attribute]
-  (query datasource-spec
-         {:find '[?entity-id ?attr-value]
-          :where [['?entity-id attribute '?attr-value]]}))
+(defn inspect-attribute-query [attribute]
+  {:find '[?entity-id ?attr-value]
+   :where [['?entity-id attribute '?attr-value]]})

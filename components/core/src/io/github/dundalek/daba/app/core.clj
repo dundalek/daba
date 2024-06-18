@@ -73,13 +73,15 @@
            query)))
 
 (defn datomic-coerce-query [query]
-  (if (string? query)
-    (try
-      (let [parsed (edn/read-string query)]
-        parsed)
-      (catch Exception _ignore
-        nil))
-    query))
+  {:query (if (string? query)
+            (try
+              (let [parsed (edn/read-string query)]
+                parsed)
+              (catch Exception _ignore
+                nil))
+            query)
+   :limit default-page-size
+   :offset 0})
 
 (defn table-data-query [table]
   {:table table
