@@ -10,7 +10,8 @@
    [portal.ui.select :as select]
    [portal.ui.styled :as s]
    [portal.ui.theme :as theme]
-   [portal.viewer :as-alias pv]))
+   [portal.viewer :as-alias pv]
+   ["react" :as react]))
 
 ;; Inspired by and could later drop in https://github.com/taoensso/tempura
 (defn tr [[message]]
@@ -86,6 +87,12 @@
                      :width "40%"
                      :animation "io-github-dundalek-daba-loading-animation 1s linear infinite"
                      :background (::c/tag theme)}}]]))
+
+(defn on-ctrl-enter-handler [callback]
+  (fn [ev]
+    (when (and (.-ctrlKey ev) (= (.-key ev) "Enter"))
+      (.preventDefault ev)
+      (callback))))
 
 (def s-textarea (partial s/styled :textarea))
 
@@ -173,21 +180,26 @@
                                   {:cell-id cell-id
                                    :dsid dsid
                                    :query query}))
-        on-offset-change #(execute-query (assoc query :offset %))]
+        on-offset-change #(execute-query (assoc query :offset %))
+        form-ref (react/useRef nil)
+        on-execute (fn []
+                     (let [statement (-> form-ref .-current .-query .-value)]
+                       (execute-query {:statement statement})))]
     ;; extra inspector wrapping otherwise seems to cause UI freezes
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
-      [:form {:on-submit (fn [ev]
+      [:form {:ref form-ref
+              :on-submit (fn [ev]
                            (.preventDefault ev)
                            (.stopPropagation ev)
-                           (let [statement (-> ev .-target .-query .-value)]
-                             (execute-query {:statement statement})))
+                           (on-execute))
               :style {:display "flex"
                       :gap 6}}
        [textarea {:name "query"
                   :default-value statement
-                  :style {:flex-grow 1}}]
+                  :style {:flex-grow 1}
+                  :on-key-down (on-ctrl-enter-handler on-execute)}]
        [button {:type "submit"
                 :name "execute"}
         (tr ["execute"])]]
@@ -204,23 +216,28 @@
                            (dispatch `event/datomic-query-editor-changed
                                      {:cell-id cell-id
                                       :dsid dsid
-                                      :query (assoc query-map :offset new-offset)}))]
+                                      :query (assoc query-map :offset new-offset)}))
+        form-ref (react/useRef nil)
+        on-execute (fn []
+                     (let [query (-> form-ref .-current .-query .-value)]
+                       (dispatch `event/datomic-query-editor-executed
+                                 {:cell-id cell-id
+                                  :dsid dsid
+                                  :query query})))]
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
-      [:form {:on-submit (fn [ev]
+      [:form {:ref form-ref
+              :on-submit (fn [ev]
                            (.preventDefault ev)
                            (.stopPropagation ev)
-                           (let [query (-> ev .-target .-query .-value)]
-                             (dispatch `event/datomic-query-editor-executed
-                                       {:cell-id cell-id
-                                        :dsid dsid
-                                        :query query})))
+                           (on-execute))
               :style {:display "flex"
                       :gap 6}}
        [textarea {:name "query"
                   :default-value (pr-str query)
-                  :style {:flex-grow 1}}]
+                  :style {:flex-grow 1}
+                  :on-key-down (on-ctrl-enter-handler on-execute)}]
        [button {:type "submit"
                 :name "execute"}
         (tr ["execute"])]]
