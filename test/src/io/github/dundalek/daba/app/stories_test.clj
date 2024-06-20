@@ -5,6 +5,10 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.app.stories :as stories]))
 
-(deftest foo
-  (stories/generate-doc-tree)
+(deftest sql-stories
+  (stories/sql-doc-tree)
   (is (= 9 (-> @app/!app-db ::state/cells count))))
+
+(deftest datomic-stories
+  (stories/datomic-doc-tree)
+  (is (= 11 (-> @app/!app-db ::state/cells count))))
