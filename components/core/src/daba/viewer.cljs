@@ -87,20 +87,20 @@
                      :animation "io-github-dundalek-daba-loading-animation 1s linear infinite"
                      :background (::c/tag theme)}}]]))
 
+(def s-textarea (partial s/styled :textarea))
+
 (defn textarea [props]
-   ;; Using input instead of textarea for now because global shortcuts interfere with typing in textarea
-   ;; https://github.com/djblue/portal/pull/224
   (let [theme (theme/use-theme)
         stop-propagation (fn [ev]
                            ;; stop propagation so that portal selection does not steal input focus
                            (.stopPropagation ev))]
-    [s/input (->
-              {:type "text"
-               :auto-focus true
-               :on-click stop-propagation
-               :on-double-click stop-propagation}
-              (merge props)
-              (merge-style (input-style theme)))]))
+    [s-textarea
+     (-> {:type "text"
+          :auto-focus true
+          :on-click stop-propagation
+          :on-double-click stop-propagation}
+         (merge props)
+         (merge-style (input-style theme)))]))
 
 (defn button [props & children]
   (let [theme (theme/use-theme)]
