@@ -11,6 +11,13 @@ flowchart TB
   schema-list -- tables --> table-list
   table-list -- columns --> column-list
   table-list -- data --> datagrid
+
+  datasource -- schema --> xtdb1-attribute-list
+  datasource-input -- schema --> xtdb1-attribute-list
+  datasource -- query --> xtdb1-query-editor
+  datasource-input -- query --> xtdb1-query-editor
+  xtdb1-attribute-list -- data --> xtdb1-query-editor
+
   datasource -- schema --> datomic-database-list
   datasource-input -- schema --> datomic-database-list
   datomic-database-list -- namespaces --> datomic-namespace-list

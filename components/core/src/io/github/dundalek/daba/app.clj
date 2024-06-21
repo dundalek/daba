@@ -7,6 +7,7 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
    [io.github.dundalek.daba.lib.miniframe :as mf]
+   io.github.dundalek.daba.xtdb1.event ; for side-effects
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
    [portal.api :as p]

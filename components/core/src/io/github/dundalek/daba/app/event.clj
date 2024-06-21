@@ -5,7 +5,8 @@
    [io.github.dundalek.daba.app.state :as state]
    [io.github.dundalek.daba.lib.datomic :as datomic]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
-   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]))
+   [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]
+   [io.github.dundalek.daba.xtdb1.core :as xtdb1]))
 
 (declare fx-execute-string-query)
 (declare fx-query-table-data)
@@ -51,6 +52,14 @@
 (defmacro schedule-async [& body]
   `(schedule-async-call (fn [] ~@body)))
 
+(defn create-query-editor [db value]
+  (let [dsid (core/parse-db-spec value)]
+    (if (core/xtdb1-datasource? dsid)
+      (xtdb1/create-query-editor db dsid)
+      (let [query (core/coerce-query core/default-input-query)
+            viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
+        (core/create-cell db viewer)))))
+
 (def-event-db tables-request-completed [db {:keys [result dsid]}]
   (core/create-cell db (core/table-list-viewer result {:dsid dsid})))
 
@@ -76,7 +85,7 @@
 
 (def-event-db datomic-attribute-inspected [_db {:keys [dsid attribute]}]
   (let [query (core/datomic-coerce-query
-               (datomic/inspect-attribute-query attribute))]
+               (core/datomic-inspect-attribute-query attribute))]
     (fx!
      (schedule-async
       (frame/dispatch
@@ -134,10 +143,7 @@
    (fx-request-schemas (core/parse-db-spec value))))
 
 (def-event-db datasource-query-triggered [db value]
-  (let [dsid (core/parse-db-spec value)
-        query (core/coerce-query core/default-input-query)
-        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
-    (core/create-cell db viewer)))
+  (create-query-editor db value))
 
 (def-event-db datasource-input-schema-triggered [db {:keys [cell-id value]}]
   (fx!
@@ -146,12 +152,9 @@
       (core/set-cell cell-id (core/datasource-input-viwer value))))
 
 (def-event-db datasource-input-query-triggered [db {:keys [cell-id value]}]
-  (let [dsid (core/parse-db-spec value)
-        query (core/coerce-query core/default-input-query)
-        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
-    (-> db
-        (core/set-cell cell-id (core/datasource-input-viwer value))
-        (core/create-cell viewer))))
+  (-> db
+      (create-query-editor value)
+      (core/set-cell cell-id (core/datasource-input-viwer value))))
 
 (def-event-db schema-tables-inspected [_db {:keys [dsid schema]}]
   (fx!
@@ -241,15 +244,21 @@
 (defn fx-request-schemas [dsid]
   (schedule-async
    #_(drivers/ensure-loaded! dsid)
-   (if (core/datomic-datasource? dsid)
+   (cond
+     (core/datomic-datasource? dsid)
      (frame/dispatch (datomic-databases-request-completed
                       {:dsid dsid
                        :result (datomic/get-databases dsid)}))
-     (let [schemas (dbc/get-schemas dsid)]
-       (if (seq schemas)
-         (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
-         (let [tables (dbc/get-tables dsid nil)]
-           (frame/dispatch (tables-request-completed {:result tables :dsid dsid}))))))))
+
+     (core/xtdb1-datasource? dsid)
+     ;; hacky workaround, need to untangle dependencies
+     (frame/dispatch [:io.github.dundalek.daba.xtdb1.event/datasource-schema-triggered {:dsid dsid}])
+
+     :else (let [schemas (dbc/get-schemas dsid)]
+             (if (seq schemas)
+               (frame/dispatch (schemas-request-completed {:result schemas :dsid dsid}))
+               (let [tables (dbc/get-tables dsid nil)]
+                 (frame/dispatch (tables-request-completed {:result tables :dsid dsid}))))))))
 
 (defn fx-datomic-execute-query [{:keys [cell-id dsid query]}]
   (schedule-async

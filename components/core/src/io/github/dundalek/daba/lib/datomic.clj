@@ -32,6 +32,3 @@
   (let [db (datasource->db datasource-spec)]
     (d/q (assoc arg-map :args [db]))))
 
-(defn inspect-attribute-query [attribute]
-  {:find '[?entity-id ?attr-value]
-   :where [['?entity-id attribute '?attr-value]]})

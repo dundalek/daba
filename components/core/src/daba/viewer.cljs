@@ -3,6 +3,7 @@
    [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app.frame :as-alias frame]
    [io.github.dundalek.daba.app.state :as-alias state]
+   [io.github.dundalek.daba.xtdb1.event :as-alias xtdb1.event]
    [portal.colors :as c]
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
@@ -208,22 +209,12 @@
                                 :on-offset-change on-offset-change
                                 :value value}]]]))
 
-(defn datomic-query-editor-component [value]
-  (let [{::keys [datomic-query-editor cell-id dsid]} (meta value)
-        {query-map :query} datomic-query-editor
-        {:keys [query limit offset]} query-map
-        on-offset-change (fn [new-offset]
-                           (dispatch `event/datomic-query-editor-changed
-                                     {:cell-id cell-id
-                                      :dsid dsid
-                                      :query (assoc query-map :offset new-offset)}))
-        form-ref (react/useRef nil)
+(defn query-editor [{:keys [default-value value on-offset-change on-execute offset limit]}]
+  (let [form-ref (react/useRef nil)
         on-execute (fn []
                      (let [query (-> form-ref .-current .-query .-value)]
-                       (dispatch `event/datomic-query-editor-executed
-                                 {:cell-id cell-id
-                                  :dsid dsid
-                                  :query query})))]
+                       (on-execute query)))]
+    ;; extra inspector wrapping otherwise seems to cause UI freezes
     [ins/inspector
      {::pv/default ::pv/hiccup}
      [:div
@@ -234,8 +225,9 @@
                            (on-execute))
               :style {:display "flex"
                       :gap 6}}
-       [textarea {:name "query"
-                  :default-value (pr-str query)
+       [textarea {:key default-value ; workaround to update value when default-value changes externally
+                  :name "query"
+                  :default-value default-value
                   :style {:flex-grow 1}
                   :on-key-down (on-ctrl-enter-handler on-execute)}]
        [button {:type "submit"
@@ -245,6 +237,48 @@
                                 :limit limit
                                 :on-offset-change on-offset-change
                                 :value value}]]]))
+
+(defn datomic-query-editor-component [value]
+  (let [{::keys [datomic-query-editor cell-id dsid]} (meta value)
+        {query-map :query} datomic-query-editor
+        {:keys [query limit offset]} query-map
+        on-offset-change (fn [new-offset]
+                           (dispatch `event/datomic-query-editor-changed
+                                     {:cell-id cell-id
+                                      :dsid dsid
+                                      :query (assoc query-map :offset new-offset)}))
+        on-execute (fn [query]
+                     (dispatch `event/datomic-query-editor-executed
+                               {:cell-id cell-id
+                                :dsid dsid
+                                :query query}))]
+    [query-editor {:default-value (pr-str query)
+                   :value value
+                   :on-execute on-execute
+                   :on-offset-change on-offset-change
+                   :offset offset
+                   :limit limit}]))
+
+(defn xtdb1-query-editor-component [value]
+  (let [{::keys [xtdb1-query-editor cell-id dsid]} (meta value)
+        {:keys [query]} xtdb1-query-editor
+        {:keys [limit offset]} query
+        on-offset-change (fn [new-offset]
+                           (dispatch `xtdb1.event/query-editor-changed
+                                     {:cell-id cell-id
+                                      :dsid dsid
+                                      :query (assoc query :offset new-offset)}))
+        on-execute (fn [query]
+                     (dispatch `xtdb1.event/query-editor-executed
+                               {:cell-id cell-id
+                                :dsid dsid
+                                :query query}))]
+    [query-editor {:default-value (pr-str query)
+                   :value value
+                   :on-execute on-execute
+                   :on-offset-change on-offset-change
+                   :offset offset
+                   :limit limit}]))
 
 (defn query-component [statement]
   [:form {:on-submit (fn [ev]
@@ -442,6 +476,29 @@
             item]
            [datomic-database-list-actions {:db-name item :dsid dsid}]]
           {::pv/default ::pv/hiccup}))]]))
+
+(def ^:private xtdb1-schema-table-opts
+  {:columns [:attr-name :item-count :action]})
+
+(defn xtdb1-attribute-list [value]
+  (let [item-meta {::pv/for {:action ::pv/hiccup}}]
+    [ins/inspector
+     {}
+     (with-meta
+       (for [item value]
+         (with-meta
+           (assoc item :action
+                  [:div
+                   [button
+                    {:on-click (fn [ev]
+                                 (let [{::keys [dsid]} (meta value)]
+                                   (.stopPropagation ev)
+                                   (dispatch `xtdb1.event/attribute-inspected
+                                             {:dsid dsid :attribute (:attr-name item)})))}
+                    (tr ["data"])]])
+           item-meta))
+       {::pv/default ::pv/table
+        ::pv/table xtdb1-schema-table-opts})]))
 
 (defn table-item? [value]
   (and (map? value)
@@ -678,10 +735,25 @@
   :component datomic-query-editor-component})
 
 (p/register-viewer!
+ {:name ::xtdb1-query-editor
+  :predicate (fn [value]
+               (contains? (meta value) ::xtdb1-query-editor))
+  :component xtdb1-query-editor-component})
+
+(p/register-viewer!
  {:name ::datagrid
   :predicate (fn [value]
                (map? (::datagrid (meta value))))
   :component datagrid-component})
+
+(p/register-viewer!
+ {:name ::xtdb1-attribute-list
+  :predicate (fn [value]
+               (and
+                (sequential? value)
+                (map? (first value))
+                (some? (:attr-name (first value)))))
+  :component xtdb1-attribute-list})
 
 (p/register-viewer!
  {:name ::root

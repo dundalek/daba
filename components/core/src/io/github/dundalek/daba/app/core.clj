@@ -13,6 +13,10 @@
 
 (def datomic-default-query '{:find [?e] :where [[?e :my/attr "foo"]]})
 
+(defn datomic-inspect-attribute-query [attribute]
+  {:find '[?entity-id ?attr-value]
+   :where [['?entity-id attribute '?attr-value]]})
+
 (defn next-cell-id [db]
   (let [{::state/keys [next-cell-id]} db]
     [(assoc db ::state/next-cell-id (inc next-cell-id))
@@ -65,6 +69,9 @@
 
 (defn datomic-datasource? [db-spec]
   (some? (#{:datomic-local :cloud} (:server-type db-spec))))
+
+(defn xtdb1-datasource? [opts]
+  (contains? opts :xtdb/tx-log))
 
 (defn coerce-query [query]
   (merge {:offset 0 :limit default-page-size}

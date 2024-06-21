@@ -6,6 +6,10 @@
         org.postgresql/postgresql {:mvn/version "42.7.3"}
         org.xerial/sqlite-jdbc {:mvn/version "3.43.0.0"}
 
+        com.xtdb/xtdb-core {:mvn/version "1.24.3"}
+        com.xtdb/xtdb-rocksdb {:mvn/version "1.24.3"}
+        com.xtdb/xtdb-http-server {:mvn/version "1.24.3"}
+
         com.datomic/local {:mvn/version "1.0.277"}}
          ;; com.datomic/client-cloud {:mvn/version "1.0.125"}
 
