@@ -1,9 +1,11 @@
 (ns io.github.dundalek.daba.app.stories
   (:require
+   [datomic.client.api :as d]
    [io.github.dundalek.daba.app :as app]
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
+   [io.github.dundalek.daba.lib.datomic :as datomic]
    [io.github.dundalek.daba.xtdb1.event :as xtdb1.event]
    [io.github.dundalek.daba.xtdb1.lib :as xtdb1-lib]
    [portal.viewer :as pv]
@@ -60,16 +62,47 @@
                                                     :dsid dsid
                                                     :query {:statement "select * from Artist"}})))))
 
+(defn datomic-ensure-sample-data! [{:keys [client-args connection-args]}]
+  (let [{:keys [db-name]} connection-args
+        client (d/client client-args)
+        _ (when (empty? (datomic/get-databases client-args))
+            (d/create-database client {:db-name db-name}))
+        conn (d/connect client {:db-name db-name})
+        movie-schema [{:db/ident :movie/title
+                       :db/valueType :db.type/string
+                       :db/cardinality :db.cardinality/one
+                       :db/doc "The title of the movie"}
+                      {:db/ident :movie/genre
+                       :db/valueType :db.type/string
+                       :db/cardinality :db.cardinality/one
+                       :db/doc "The genre of the movie"}
+                      {:db/ident :movie/release-year
+                       :db/valueType :db.type/long
+                       :db/cardinality :db.cardinality/one
+                       :db/doc "The year the movie was released in theaters"}]
+        _ (d/transact conn {:tx-data movie-schema})
+        first-movies [{:movie/title "The Goonies"
+                       :movie/genre "action/adventure"
+                       :movie/release-year 1985}
+                      {:movie/title "Commando"
+                       :movie/genre "thriller/action"
+                       :movie/release-year 1985}
+                      {:movie/title "Repo Man"
+                       :movie/genre "punk dystopia"
+                       :movie/release-year 1984}]]
+    (d/transact conn {:tx-data first-movies})))
+
 (defn datomic-doc-tree []
   (with-redefs [event/schedule-async-call (fn [f] (f))]
     (frame/dispatch (event/values-cleared))
     (let [client-args {:server-type :datomic-local
-                       :system "datomic-samples"
-                       :storage-dir "/home/me/projects/daba/tmp/datomic-data"}
+                       :storage-dir :mem
+                       :system "stories"}
           connection-args {:db-name "movies"}
           dsid {:client-args client-args
                 :connection-args connection-args}
           datasource-cell-id (latest-cell-id)]
+      (datomic-ensure-sample-data! dsid)
 
       (doc! "Inspect Databases")
       (frame/dispatch
