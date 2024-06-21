@@ -6,7 +6,7 @@
 ;; In the future it would be cleaner to implement some sort of connection manager
 (defonce !node-cache (atom {}))
 
-(defn- get-node [opts]
+(defn get-node [opts]
   (or (get @!node-cache opts)
       (let [node (xt/start-node opts)]
         (swap! !node-cache assoc opts node)

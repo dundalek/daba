@@ -12,3 +12,7 @@
 (deftest datomic-stories
   (stories/datomic-doc-tree)
   (is (= 11 (-> @app/!app-db ::state/cells count))))
+
+(deftest xtdb-stories
+  (stories/xtdb-doc-tree)
+  (is (= 7 (-> @app/!app-db ::state/cells count))))

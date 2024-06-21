@@ -4,7 +4,10 @@
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
-   [portal.viewer :as pv]))
+   [io.github.dundalek.daba.xtdb1.event :as xtdb1.event]
+   [io.github.dundalek.daba.xtdb1.lib :as xtdb1-lib]
+   [portal.viewer :as pv]
+   [xtdb.api :as xt]))
 
 (defn- latest-cell-id []
   (-> @app/!app-db ::state/cells first key))
@@ -89,6 +92,49 @@
                         :dsid dsid
                         :query "{:find [?entity-id ?attr-value], :where [[?entity-id :movie/genre ?attr-value]]}"})))))
 
+(defn xtdb-ensure-sample-data! [node-opts]
+  (when (empty (xtdb1-lib/query node-opts '{:find [?e] :where [[?e :database/name _]]}))
+    (let [my-docs [{:xt/id -1
+                    :database/name "PostgreSQL"
+                    :database/query-language "SQL"}
+                   {:xt/id -2
+                    :database/name "SQLite"
+                    :database/query-language "SQL"}
+                   {:xt/id -3
+                    :database/name "DuckDB"
+                    :database/query-language "SQL"}
+                   {:xt/id -4
+                    :database/name "Datomic"
+                    :database/query-language "Datalog"}
+                   {:xt/id -5
+                    :database/name "XTDB1"
+                    :database/query-language "Datalog"}]]
+      (xt/submit-tx (xtdb1-lib/get-node node-opts)
+                    (for [doc my-docs]
+                      [:xtdb.api/put doc])))))
+
+(defn xtdb-doc-tree []
+  (with-redefs [event/schedule-async-call (fn [f] (f))]
+    (frame/dispatch (event/values-cleared))
+    (let [dsid {:xtdb/tx-log {}}
+          datasource-cell-id (latest-cell-id)]
+      (xtdb-ensure-sample-data! dsid)
+
+      (doc! "Inspect Databases")
+      (frame/dispatch
+       (event/datasource-input-schema-triggered
+        {:cell-id datasource-cell-id :value (pr-str dsid)}))
+
+      (doc! "Browse Attribute Data")
+      (frame/dispatch (xtdb1.event/attribute-inspected {:dsid dsid :attribute :database/name}))
+
+      (doc! "Edit and Execute Datalog Query")
+      (frame/dispatch (event/datasource-input-query-triggered {:cell-id datasource-cell-id :value (pr-str dsid)}))
+      (frame/dispatch (xtdb1.event/query-editor-executed
+                       {:cell-id (latest-cell-id)
+                        :dsid dsid
+                        :query "{:find [?name (count ?name)], :where [[_ :database/query-language ?name]]}"})))))
+
 (comment
   (tap>
    {:cljdoc.doc/tree
@@ -100,4 +146,8 @@
      (into ["Datomic"]
            (do
              (datomic-doc-tree)
+             (cells->docs)))
+     (into ["XTDB"]
+           (do
+             (xtdb-doc-tree)
              (cells->docs)))]}))
