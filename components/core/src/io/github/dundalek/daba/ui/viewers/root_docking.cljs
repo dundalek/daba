@@ -12,7 +12,8 @@
    [portal.ui.rpc :as rpc]
    [portal.ui.theme :as theme]
    [portal.viewer :as-alias pv]
-   [reagent.core :as r]))
+   [reagent.core :as r]
+   [reagent.ratom :as ratom]))
 
 ;; We require a functional compiler to avoid invalid hook errors when passing portal components as React elements with `r/as-element`.
 ;; This is because portal is built using basic syntax `[component]` instead of `[:f> component]` for functional components with hooks.
@@ -56,8 +57,8 @@
                    selected-node))
                nil)))
 
-(defn cell-panel [{:keys [cells cell-id]}]
-  (let [value (get @cells cell-id)
+(defn cell-panel [{:keys [!value cell-id]}]
+  (let [value @!value
         value (try
                  ;; Pass cell-id so complex widgets can reference state when dispatching events.
                  ;; Wrapping in try-catch to prevent erroring out on primitive values which don't support metadata.
@@ -92,11 +93,14 @@
         [model] (react/useState #(FlexLayout.Model.fromJson empty-layout))
         [!cells] (react/useState #(r/atom {}))
         factory (fn [^js node]
-                  (let [component (.getComponent node)]
+                  (let [component (.getComponent node)
+                        cell-id (.getId node)]
                     (when (= component "cell")
-                      ;; TODO: pass subscription to ocell value for better granularity
-                      (as-element [cell-panel {:cells !cells
-                                               :cell-id (.getId node)}]))))
+                      (as-element
+                       [cell-panel {:!value (ratom/make-reaction
+                                             (fn []
+                                               (get @!cells cell-id)))
+                                    :cell-id cell-id}]))))
         handle-action (fn [^js action]
                         (if (= FlexLayout.Actions.DELETE_TAB (.-type action))
                           (let [cell-id (-> action .-data .-node)]
