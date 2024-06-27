@@ -36,6 +36,7 @@
                          (set! (.-React js/window) react)
                          (set! (.-ReactDOM js/window) react-dom))))
   (p/eval-str (pr-str (list 'js/eval (slurp (io/resource (str flexlayout-react-asset-path "/dist/flexlayout_min.js"))))))
+  (p/eval-str (slurp (io/resource "io/github/dundalek/daba/ui/components/loading_indicator.cljs")))
   (p/eval-str (slurp (io/resource "daba/viewer.cljs")))
   (p/eval-str (slurp (io/resource "io/github/dundalek/daba/ui/viewers/root_docking.cljs")))
   (p/eval-str (pr-str (list 'daba.viewer/set-style-content!

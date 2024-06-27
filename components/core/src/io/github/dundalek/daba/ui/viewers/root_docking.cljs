@@ -6,6 +6,7 @@
    [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app.frame :as-alias frame]
    [io.github.dundalek.daba.app.state :as-alias state]
+   [io.github.dundalek.daba.ui.components.loading-indicator :refer [loading-indicator]]
    [portal.ui.api :as p]
    [portal.ui.inspector :as ins]
    [portal.ui.rpc :as rpc]
@@ -87,7 +88,6 @@
     (some-> viewer name)))
 
 (defn root-docking-component [app-db]
-  ;; TODO: loading indicator
   (let [{::state/keys [running-tasks cells]} app-db
         [model] (react/useState #(FlexLayout.Model.fromJson empty-layout))
         [!cells] (react/useState #(r/atom {}))
@@ -135,14 +135,17 @@
 
     (use-flexlayout-theme!)
 
-    [:div {:style {:position "relative"
-                   :width "100%"
-                   ;; expand view to full height, subtract offset for Portal header and footer UI
-                   :height "calc(100vh - 160px)"}}
-     [:> FlexLayout.Layout
-      {:model model
-       :factory factory
-       :onAction handle-action}]]))
+    [:div
+     (when (pos? running-tasks)
+       [loading-indicator])
+     [:div {:style {:position "relative"
+                    :width "100%"
+                    ;; expand view to full height, subtract offset for Portal header and footer UI
+                    :height "calc(100vh - 160px)"}}
+      [:> FlexLayout.Layout
+       {:model model
+        :factory factory
+        :onAction handle-action}]]]))
 
 (p/register-viewer!
  {:name :daba.viewer/root-docking
