@@ -1,5 +1,6 @@
 (ns daba.viewer
   (:require
+   ["react" :as react]
    [io.github.dundalek.daba.app.event :as-alias event]
    [io.github.dundalek.daba.app.frame :as-alias frame]
    [io.github.dundalek.daba.app.state :as-alias state]
@@ -11,8 +12,7 @@
    [portal.ui.select :as select]
    [portal.ui.styled :as s]
    [portal.ui.theme :as theme]
-   [portal.viewer :as-alias pv]
-   ["react" :as react]))
+   [portal.viewer :as-alias pv]))
 
 ;; Inspired by and could later drop in https://github.com/taoensso/tempura
 (defn tr [[message]]

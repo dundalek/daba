@@ -27,8 +27,23 @@
 (defn submit [value]
   (frame/dispatch (event/tap-submitted value)))
 
+(def flexlayout-react-asset-path "vendor/flexlayout-react/v0.7.15")
+
 (defn load-viewers []
-  (p/eval-str (slurp (io/resource "daba/viewer.cljs"))))
+  (p/eval-str (pr-str '(do
+                         (require '["react" :as react])
+                         (require '["react-dom" :as react-dom])
+                         (set! (.-React js/window) react)
+                         (set! (.-ReactDOM js/window) react-dom))))
+  (p/eval-str (pr-str (list 'js/eval (slurp (io/resource (str flexlayout-react-asset-path "/dist/flexlayout_min.js"))))))
+  (p/eval-str (slurp (io/resource "daba/viewer.cljs")))
+  (p/eval-str (slurp (io/resource "io/github/dundalek/daba/ui/viewers/root_docking.cljs")))
+  (p/eval-str (pr-str (list 'daba.viewer/set-style-content!
+                            "flexlayout-dark"
+                            (slurp (io/resource (str flexlayout-react-asset-path "/style/dark.css"))))))
+  (p/eval-str (pr-str (list 'daba.viewer/set-style-content!
+                            "flexlayout-light"
+                            (slurp (io/resource (str flexlayout-react-asset-path "/style/light.css")))))))
 
 (defn query->columns [value]
   (-> (meta value)
@@ -83,6 +98,8 @@ create table address (
 
   (load-viewers)
 
+  (frame/dispatch (event/root-viewer-switched))
+
   (frame/dispatch (event/tap-submitted [1 2 3]))
   (frame/dispatch (event/tap-submitted 456))
 
@@ -126,4 +143,3 @@ create table address (
 
   (doseq [i (range 5)]
     (tap> (str "Item " i))))
-

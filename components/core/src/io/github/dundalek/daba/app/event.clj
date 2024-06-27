@@ -210,6 +210,16 @@
      (fx-execute-string-query {:cell-id cell-id :dsid dsid :query query}))
     (core/set-cell db cell-id viewer)))
 
+(def-event-db root-viewer-switched [db _]
+  ;; Changing metadata does not make Portal re-render
+  ;; As a workaround incrementing next-cell-id for the change to take effect
+  (let [[db _] (core/next-cell-id db)]
+    (vary-meta db update :portal.viewer/default
+               (fn [viewer]
+                 (if (= viewer :daba.viewer/root)
+                   :daba.viewer/root-docking
+                   :daba.viewer/root)))))
+
 (defn fx-execute-string-query [{:keys [cell-id dsid query]}]
   (schedule-async
    (frame/dispatch
