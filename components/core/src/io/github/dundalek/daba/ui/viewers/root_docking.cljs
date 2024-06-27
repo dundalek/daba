@@ -79,6 +79,13 @@
        js/undefined)
      #js [light?])))
 
+(defn cell-tab-name [value]
+  (let [viewer (::pv/default (meta value))
+        viewer (or (when (= viewer ::pv/hiccup)
+                     (some-> value second ::pv/default))
+                   viewer)]
+    (some-> viewer name)))
+
 (defn root-docking-component [app-db]
   ;; TODO: loading indicator
   (let [{::state/keys [running-tasks cells]} app-db
@@ -113,8 +120,10 @@
                    ; (.getActiveTabset ^js model)
                    ; (.getFirstTabSet ^js model)
 
+                   ;; TODO: make name reactive
+                   tab-name (str (cell-tab-name (get cells cell-id)) " [" cell-id "]")
                    node #js {:id cell-id
-                             :name (str "Item " cell-id)
+                             :name tab-name
                              :type "tab"
                              :component "cell"}
                    add-node-action (FlexLayout.Actions.addNode node (.getId tabset-node) (.-CENTER FlexLayout.DockLocation) -1)]
