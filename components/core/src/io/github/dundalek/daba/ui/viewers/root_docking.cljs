@@ -29,7 +29,7 @@
             (into [(keyword event-sym)] args)))
 
 (def empty-layout
-  (clj->js {:global {}
+  (clj->js {:global {:tabEnableRename false}
             :layout {:type "row"
                      :weight 100
                      :children [{:type "tabset"
@@ -81,26 +81,33 @@
        js/undefined)
      #js [light?])))
 
-(defn cell-tab-name [value]
+(defn cell->title [value]
   (let [viewer (::pv/default (meta value))
         viewer (or (when (= viewer ::pv/hiccup)
                      (some-> value second ::pv/default))
                    viewer)]
     (some-> viewer name)))
 
+(defn tab-button-title [{:keys [cell-id !value]}]
+  (let [value @!value]
+    [:span (str (cell->title value) " :" cell-id)]))
+
 (defn root-docking-component [app-db]
   (let [{::state/keys [running-tasks cells]} app-db
         [model] (react/useState #(FlexLayout.Model.fromJson empty-layout))
         [!cells] (react/useState #(r/atom {}))
         factory (fn [^js node]
-                  (let [component (.getComponent node)
-                        cell-id (.getId node)]
-                    (when (= component "cell")
-                      (as-element
-                       [cell-panel {:!value (ratom/make-reaction
-                                             (fn []
-                                               (get @!cells cell-id)))
-                                    :cell-id cell-id}]))))
+                  (let [cell-id (.getId node)]
+                    (as-element
+                     [cell-panel {:!value (ratom/make-reaction
+                                           (fn [] (get @!cells cell-id)))
+                                  :cell-id cell-id}])))
+        title-factory (fn [^js node]
+                        (let [cell-id (.getId node)]
+                          (as-element
+                           [tab-button-title {:!value (ratom/make-reaction
+                                                       (fn [] (get @!cells cell-id)))
+                                              :cell-id cell-id}])))
         handle-action (fn [^js action]
                         (if (= FlexLayout.Actions.DELETE_TAB (.-type action))
                           (let [cell-id (-> action .-data .-node)]
@@ -124,12 +131,8 @@
                    ; (.getActiveTabset ^js model)
                    ; (.getFirstTabSet ^js model)
 
-                   ;; TODO: make name reactive
-                   tab-name (str (cell-tab-name (get cells cell-id)) " [" cell-id "]")
                    node #js {:id cell-id
-                             :name tab-name
-                             :type "tab"
-                             :component "cell"}
+                             :type "tab"}
                    add-node-action (FlexLayout.Actions.addNode node (.getId tabset-node) (.-CENTER FlexLayout.DockLocation) -1)]
                (.doAction ^js model add-node-action)))))
 
@@ -149,6 +152,7 @@
       [:> FlexLayout.Layout
        {:model model
         :factory factory
+        :titleFactory title-factory
         :onAction handle-action}]]]))
 
 (p/register-viewer!
