@@ -17,3 +17,5 @@
   (q [_ db q]
     (xt/q db q)))
 
+(defn make []
+  (->XDTBAdapter))
