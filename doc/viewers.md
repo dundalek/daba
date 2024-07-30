@@ -3,6 +3,8 @@
 
 ```mermaid
 flowchart TB
+  root-action-bar -- open --> datasource-input
+
   datasource -- edit --> datasource-input
   datasource-input -- schema --> schema-list
   datasource-input -- query --> query-editor

@@ -2,6 +2,7 @@
   (:require
    [clojure.java.io :as io]
    [daba.viewer :as-alias dv]
+   [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
@@ -65,8 +66,7 @@
 (defn open
   ([] (open nil))
   ([opts]
-   ;; Open initial datasource input to serve as entrypoint
-   (inspect-datasource "")
+   (frame/dispatch (event/tap-submitted (core/root-action-bar-viewer)))
    (p/open (merge {:value !app-db
                    :on-load load-viewers}
                   opts))))

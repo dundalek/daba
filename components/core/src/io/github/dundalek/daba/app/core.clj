@@ -166,3 +166,6 @@
                           ::pv/default ::dv/datomic-query-editor
                           ::dv/datomic-query-editor {:query query}
                           ::dv/dsid dsid)))))
+
+(defn root-action-bar-viewer []
+  (pv/default {} ::dv/root-action-bar))

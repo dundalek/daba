@@ -637,6 +637,24 @@
              [ins/with-key cell-id [ins/inspector value]]]]))
        cells)]]))
 
+(defn root-action-bar [_]
+  [:div {:style {:display "flex"
+                 :align-items "center"
+                 :gap 6}}
+   [button {:on-click (fn [ev]
+                        (.stopPropagation ev)
+                        (dispatch `event/datasource-edit-triggered ""))}
+    (tr ["open datasource"])]
+   [button {:on-click (fn [ev]
+                        (.stopPropagation ev)
+                        (dispatch `event/root-viewer-switched))}
+    (tr ["switch layout"])]])
+
+(p/register-viewer!
+ {:name ::root-action-bar
+  :predicate #(= ::root-action-bar (::pv/default (meta %)))
+  :component root-action-bar})
+
 (p/register-viewer!
  {:name ::datasource
   :predicate datasource?
