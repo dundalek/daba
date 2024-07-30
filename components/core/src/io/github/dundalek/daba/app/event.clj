@@ -3,7 +3,7 @@
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
-   [io.github.dundalek.daba.lib.datomic :as datomic]
+   [io.github.dundalek.daba.datomic.lib :as datomic]
    [io.github.dundalek.daba.lib.jdbc :as dbc]
    [io.github.dundalek.daba.lib.miniframe :refer [def-event-db fx!]]
    [io.github.dundalek.daba.xtdb1.core :as xtdb1]))

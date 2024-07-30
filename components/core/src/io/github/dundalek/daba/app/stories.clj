@@ -5,7 +5,7 @@
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
-   [io.github.dundalek.daba.lib.datomic :as datomic]
+   [io.github.dundalek.daba.datomic.lib :as datomic]
    [io.github.dundalek.daba.xtdb1.event :as xtdb1.event]
    [io.github.dundalek.daba.xtdb1.lib :as xtdb1-lib]
    [portal.viewer :as pv]

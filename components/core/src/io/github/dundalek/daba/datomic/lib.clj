@@ -1,4 +1,4 @@
-(ns io.github.dundalek.daba.lib.datomic
+(ns io.github.dundalek.daba.datomic.lib
   (:require
    [clojure.string :as str]
    [datomic.client.api :as d]))
