@@ -2,12 +2,11 @@
   (:require
    [clojure.edn :as edn]
    [daba.viewer :as-alias dv]
-   [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.core :as app]
    [portal.viewer :as pv]))
 
 (defn coerce-query [query]
-  (merge {:limit core/default-page-size :offset 0}
+  (merge {:limit app/default-page-size :offset 0}
          (if (string? query)
            (try
              (let [parsed (edn/read-string query)]
