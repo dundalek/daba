@@ -1,7 +1,7 @@
-{:tasks {dev (clojure "-M:repl:xtdb")
-         test (clojure "-M:test:xtdb --watch")
-         test:once (clojure "-M:test:xtdb")
-         test:coverage (clojure "-M:test:xtdb:coverage")
+{:tasks {dev (clojure "-M:repl:xtdb:datomic")
+         test (clojure "-M:test:xtdb:datomic --watch")
+         test:once (clojure "-M:test:xtdb:datomic")
+         test:coverage (clojure "-M:test:xtdb:datomic:coverage")
 
          quickdoc {:doc "Invoke quickdoc"
                    :extra-deps {io.github.borkdude/quickdoc {:git/sha "7c8bef54eda28367193ec433af01bb940114f012"}}

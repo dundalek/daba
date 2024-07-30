@@ -4,12 +4,9 @@
         org.duckdb/duckdb_jdbc {:mvn/version "0.10.2"}
         com.h2database/h2 {:mvn/version "2.2.224"}
         org.postgresql/postgresql {:mvn/version "42.7.3"}
-        org.xerial/sqlite-jdbc {:mvn/version "3.43.0.0"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.43.0.0"}}
 
-        com.datomic/local {:mvn/version "1.0.277"}}
-         ;; com.datomic/client-cloud {:mvn/version "1.0.125"}
-
- ; :paths ["src" "classes"]
+; :paths ["src" "classes"]
 
  :tools/usage
  {:ns-default daba.api
@@ -32,6 +29,10 @@
   {:extra-deps {com.xtdb/xtdb-core {:mvn/version "1.24.3"}
                 com.xtdb/xtdb-rocksdb {:mvn/version "1.24.3"}}}
                 ; com.xtdb/xtdb-http-server {:mvn/version "1.24.3"}}
+
+  :datomic
+  {:extra-deps {com.datomic/local {:mvn/version "1.0.277"}}}
+                ; com.datomic/client-cloud {:mvn/version "1.0.125"}
 
   :kondo
   {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2024.03.13"}}}
