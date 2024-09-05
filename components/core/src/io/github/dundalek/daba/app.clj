@@ -17,13 +17,8 @@
 
 (defonce !app-db (atom state/default-state))
 
-(defonce frame (mf/make-frame {:app-db !app-db}))
-
 (alter-var-root #'frame/*frame*
-                (constantly
-                 (assoc frame
-                        :event @mf/!event-registry
-                        :fx @mf/!fx-registry)))
+                (constantly (mf/make-frame {:app-db !app-db})))
 
 (defn submit [value]
   (frame/dispatch (event/tap-submitted value)))
