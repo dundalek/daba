@@ -94,12 +94,31 @@ Using this way one can also include additional JDBC drivers.
 
 ## Supported Databases
 
+SQL
+
 - PostgreSQL
 - SQLite
 - DuckDB
+- XTDB2 (using Postgres driver)
 - H2
+- ...
+- And likely other databases that provide a JDBC driver.
 
-And likely other databases that provide a JDBC driver.
+Datomic
+  - To connect specify [arg map](https://docs.datomic.com/client-api/datomic.client.api.html#var-client) like for `d/client` in the datasource input ([example](example/datomic.clj)):
+    ```clojure
+    {:server-type :datomic-local
+     :system "datomic-samples"
+     :storage-dir "path/to/storage")}
+    ```
+
+XTDB1
+  - To connect specify [configuration map](https://v1-docs.xtdb.com/guides/quickstart/#_configure_xtdb) like for `xt-start-node` in the datasource input ([example](example/xtdb.clj)):
+    ```clojure
+    {:xtdb/tx-log ...
+     :xtdb/document-store ...
+     :xtdb/index-store ...}
+    ```
 
 ## API
 
