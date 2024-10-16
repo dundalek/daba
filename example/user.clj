@@ -35,6 +35,11 @@
   ;; Alternative way to inspect database besides typing into datasource input
   (db/inspect "jdbc:sqlite:tmp/Chinook_Sqlite_AutoIncrementPKs.sqlite")
 
+  ;; For XTDB2 local docker demo
+  ;; https://docs.xtdb.com/intro/installation-via-docker
+  ;; docker run -it --pull=always -p 6543:3000 -p 5432:5432 ghcr.io/xtdb/xtdb
+  (db/inspect "postgres://localhost:5432")
+
   ;; Getting selected value
   @p
 
