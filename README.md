@@ -14,24 +14,24 @@ Start with initial exploration of database schema and data visually, then manipu
 #### Use without installing
 
 ```
-clojure -Sdeps '{:deps{io.github.dundalek/daba{:git/tag"v0.1.0":git/sha"f2c76ca"}}}' \
+clojure -Sdeps '{:deps{io.github.dundalek/daba{:git/tag"v0.2.0":git/sha"b3c2e5e9"}}}' \
         -X daba.api/open
 ```
 
 <!--
 ```
-clojure -Sdeps '{:deps{io.github.dundalek/daba{:mvn/version"0.1.0"}}}' -X daba.api/open 
+clojure -Sdeps '{:deps{io.github.dundalek/daba{:mvn/version"0.2.0"}}}' -X daba.api/open 
 ```
 
 ```
-clojure -Sdeps '{:deps{io.github.dundalek/daba-cli{:mvn/version"0.1.0"}}}' -X daba.api/open 
+clojure -Sdeps '{:deps{io.github.dundalek/daba-cli{:mvn/version"0.2.0"}}}' -X daba.api/open 
 ```
 -->
 
 #### Install as tool
 
 ```
-clojure -Ttools install io.github.dundalek/daba '{:git/tag"v0.1.0"}' :as daba
+clojure -Ttools install io.github.dundalek/daba '{:git/tag"v0.2.0"}' :as daba
 ```
 
 <!--
@@ -60,7 +60,7 @@ clojure -Tdaba open
 ```clojure
 {:aliases
  {:daba
-  {:extra-deps {io.github.dundalek/daba {:git/tag "v0.1.0" :git/sha "f2c76ca"}}
+  {:extra-deps {io.github.dundalek/daba {:git/tag "v0.2.0" :git/sha "b3c2e5e9"}}
    :exec-fn daba.api/open}}}
 ```
 
