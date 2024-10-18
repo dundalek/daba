@@ -58,7 +58,7 @@
           :fx @!fx-registry}
          frame-map
          {;; Warning: unbounded and no backpressure
-          ::!event-queue (atom #?(:clj (clojure.lang.PersistentQueue/EMPTY)
+          ::!event-queue (atom #?(:clj clojure.lang.PersistentQueue/EMPTY
                                   :cljs #queue []))
           ::processing-lock #?(:clj (ReentrantLock.)
                                :cljs nil)}))
