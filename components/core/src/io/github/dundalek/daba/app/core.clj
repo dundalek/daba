@@ -79,6 +79,21 @@
            {:statement query}
            query)))
 
+(defn honey-coerce-sql-query [input]
+  (let [query (if (string? input)
+                (try
+                  (edn/read-string input)
+                  (catch Exception _
+                    nil))
+                input)]
+    (when (map? query)
+      ;; todo detect more
+      query)))
+
+(defn honey-add-default-limit [query]
+  (cond-> query
+    (and (:select query) (not (contains? query :limit))) (assoc :limit default-page-size)))
+
 (defn datomic-coerce-query [query]
   {:query (if (string? query)
             (try

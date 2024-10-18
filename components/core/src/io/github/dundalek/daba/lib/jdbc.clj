@@ -1,5 +1,6 @@
 (ns io.github.dundalek.daba.lib.jdbc
   (:require
+   [honey.sql :as hsql]
    [next.jdbc :as jdbc]
    [next.jdbc.datafy]
    [next.jdbc.result-set :as rs]
@@ -107,6 +108,10 @@
      (comp (drop offset)
            (take limit)
            (map #(rs/datafiable-row % ds {}))))))
+
+(defn execute-honey-query [ds query]
+  (let [sql (hsql/format query)]
+    (jdbc/execute! ds sql {:builder-fn as-maps-with-columns-meta})))
 
 (defn execute-structured-query [ds query]
   (let [{:keys [table where limit offset]} query]

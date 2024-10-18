@@ -7,7 +7,7 @@
 
 (deftest sql-stories
   (stories/sql-doc-tree)
-  (is (= 9 (-> @app/!app-db ::state/cells count))))
+  (is (= 13 (-> @app/!app-db ::state/cells count))))
 
 (deftest datomic-stories
   (stories/datomic-doc-tree)
