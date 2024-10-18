@@ -57,10 +57,21 @@
 
       (doc! "Edit and Execute Query")
       (frame/dispatch (event/datasource-input-query-triggered {:cell-id datasource-cell-id :value jdbc-url}))
-
       (frame/dispatch (event/query-editor-executed {:cell-id (latest-cell-id)
                                                     :dsid dsid
-                                                    :query {:statement "select * from Artist"}})))))
+                                                    :query {:statement "select * from Artist"}}))
+
+      (doc! "Edit and Execute HoneySQL Query")
+      (frame/dispatch (event/datasource-input-query-triggered {:cell-id datasource-cell-id :value jdbc-url}))
+      (frame/dispatch (event/query-editor-executed {:cell-id (latest-cell-id)
+                                                    :dsid dsid
+                                                    :query {:statement "{:select [:*]\n :from [:album]\n :limit 10}"}}))
+
+      (doc! "Edit and Execute HoneySQL Query with Default Limit")
+      (frame/dispatch (event/datasource-input-query-triggered {:cell-id datasource-cell-id :value jdbc-url}))
+      (frame/dispatch (event/query-editor-executed {:cell-id (latest-cell-id)
+                                                    :dsid dsid
+                                                    :query {:statement "{:select [:*]\n :from [:album]}"}})))))
 
 (defn datomic-ensure-sample-data! [{:keys [client-args connection-args]}]
   (let [{:keys [db-name]} connection-args
@@ -183,4 +194,11 @@
      (into ["XTDB"]
            (do
              (xtdb-doc-tree)
-             (cells->docs)))]}))
+             (cells->docs)))]})
+
+  (tap>
+   {:cljdoc.doc/tree
+    (into ["SQL"]
+          (do
+            (sql-doc-tree)
+            (cells->docs)))}))

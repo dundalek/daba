@@ -1,5 +1,6 @@
 (ns io.github.dundalek.daba.app.event
   (:require
+   [clojure.pprint :as pprint]
    [io.github.dundalek.daba.app.core :as core]
    [io.github.dundalek.daba.app.frame :as frame]
    [io.github.dundalek.daba.app.state :as state]
@@ -193,9 +194,26 @@
 
 (def-event-db query-editor-executed [_db {:keys [cell-id dsid query]}]
   ;; dsid might be redundant, likely could read it from cell value
-  (let [query (core/coerce-query query)]
-    (fx!
-     (fx-execute-string-query {:cell-id cell-id :dsid dsid :query query}))))
+  (if-some [honey-query (core/honey-coerce-sql-query (:statement query))]
+    (let [honey-query-with-limit (core/honey-add-default-limit honey-query)
+          new-query (if (= honey-query honey-query-with-limit)
+                      query
+                      {:statement (with-out-str (pprint/pprint honey-query-with-limit))})]
+      (fx!
+       (schedule-async
+        (frame/dispatch
+         (query-execution-completed
+          {:cell-id cell-id
+           :result (try
+                     #_(drivers/ensure-loaded! dsid)
+                     (dbc/execute-honey-query dsid honey-query)
+                     (catch Throwable e
+                       (core/wrap-exception e)))
+           :query new-query
+           :dsid dsid})))))
+    (let [query (core/coerce-query query)]
+      (fx!
+       (fx-execute-string-query {:cell-id cell-id :dsid dsid :query query})))))
 
 (def-event-db query-edited [db statement]
   (let [dsid (core/last-used-dsid db)
