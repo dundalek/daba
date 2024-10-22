@@ -9,6 +9,10 @@ Start with initial exploration of database schema and data visually, then manipu
 | - | - |
 | ![Explore schema](doc/img/demo1.png) | ![Query and visualize](doc/img/demo2.png) |
 
+Watch the [demo video](https://www.youtube.com/watch?v=DnO8jS9vYbs):
+
+[![Daba Demo](doc/img/demo-thumbnail.avif)](https://www.youtube.com/watch?v=DnO8jS9vYbs)
+
 ## Getting Started
 
 #### Use without installing
