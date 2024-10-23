@@ -70,7 +70,7 @@ clojure -Tdaba open
 
 Then run:
 ```
-clojure -Xdaba
+clojure -X:daba
 ```
 
 Using this way one can also include additional JDBC drivers.
