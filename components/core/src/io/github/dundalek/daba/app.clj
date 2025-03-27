@@ -49,6 +49,9 @@
 (defn inspect-datasource [db-spec]
   (frame/dispatch (event/datasource-edit-triggered db-spec)))
 
+(defn query-editor [opts]
+  (frame/dispatch (event/query-editor-created opts)))
+
 (defn clear-values
   ([] (clear-values nil identity))
   ([_request done]

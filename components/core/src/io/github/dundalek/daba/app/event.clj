@@ -203,6 +203,11 @@
         viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
     (core/create-cell db viewer)))
 
+(def-event-db query-editor-created [db {:keys [dsid statement]}]
+  (let [query (core/coerce-query statement)
+        viewer (core/empty-query-editor-viewer {:query query :dsid dsid})]
+    (core/create-cell db viewer)))
+
 (def-event-db query-executed [db statement]
   (let [dsid (core/last-used-dsid db)
         query (core/coerce-query statement)
