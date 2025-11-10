@@ -3,6 +3,8 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [daba.api :as api]
+   [io.github.dundalek.daba.app.event :as event]
+   [io.github.dundalek.daba.app.frame :as frame]
    [next.jdbc :as jdbc]))
 
 (defonce !file-connections (atom {}))
@@ -25,6 +27,10 @@
     (swap! !file-connections assoc dsid conn)
     dsid))
 
+(defn- inspect-duckdb [dsid]
+  (api/inspect dsid)
+  (frame/dispatch (event/schema-tables-inspected {:dsid dsid :schema "main"})))
+
 (defn load-jsonl-to-duckdb [jsonl-path]
   (load-file-to-duckdb jsonl-path "read_json_auto"))
 
@@ -39,13 +45,13 @@
       (api/inspect path)
 
       (str/ends-with? path ".csv")
-      (api/inspect (load-csv-to-duckdb path))
+      (inspect-duckdb (load-csv-to-duckdb path))
 
       (str/ends-with? path ".jsonl")
-      (api/inspect (load-jsonl-to-duckdb path))
+      (inspect-duckdb (load-jsonl-to-duckdb path))
 
       (str/ends-with? path ".duckdb")
-      (api/inspect (str "duckdb://" path))
+      (inspect-duckdb (str "duckdb://" path))
 
       :else
       (api/inspect (str "sqlite://" path)))))
