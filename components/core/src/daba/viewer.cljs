@@ -330,7 +330,12 @@
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch `event/table-data-inspected {:dsid dsid :table table-name}))}
-      (tr ["data"])]]))
+      (tr ["data"])]
+     [button
+      {:on-click (fn [ev]
+                   (.stopPropagation ev)
+                   (dispatch `event/query-editor-created {:dsid dsid :statement (str "SELECT * FROM " table-name)}))}
+      (tr ["query"])]]))
 
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
