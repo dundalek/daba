@@ -335,7 +335,12 @@
       {:on-click (fn [ev]
                    (.stopPropagation ev)
                    (dispatch `event/query-editor-created {:dsid dsid :statement (str "SELECT * FROM " table-name)}))}
-      (tr ["query"])]]))
+      (tr ["query"])]
+     [button
+      {:on-click (fn [ev]
+                   (.stopPropagation ev)
+                   (dispatch `event/query-editor-created {:dsid dsid :statement (str "SUMMARIZE SELECT * FROM " table-name)}))}
+      (tr ["summarize"])]]))
 
 (defn table-list-component [value]
   (let [{::keys [dsid]} (meta value)]
