@@ -3,6 +3,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [daba.api :as api]
+   [honey.sql :as sql]
    [io.github.dundalek.daba.app.event :as event]
    [io.github.dundalek.daba.app.frame :as frame]
    [next.jdbc :as jdbc]))
@@ -24,11 +25,17 @@
     (swap! !file-connections assoc dsid conn)
     {:dsid dsid :conn conn}))
 
-(defn- load-file-to-duckdb [file-path reader-fn]
-  (let [{:keys [dsid conn]} (create-duckdb-connection)
-        table-name (derive-table-name file-path)
-        create-stmt (format "CREATE TABLE %s AS SELECT * FROM %s(?);" table-name reader-fn)]
-    (jdbc/execute! conn [create-stmt file-path])
+(defn- load-file-to-duckdb-connection [conn reader-fn file-path]
+  (let [table-name (derive-table-name file-path)
+        sql-vec (sql/format {:create-table [[(keyword table-name) :as
+                                             {:select [:*]
+                                              :from [[[reader-fn file-path]]]}]]})]
+
+    (jdbc/execute! conn sql-vec)))
+
+(defn- load-file-to-duckdb [reader-fn file-path]
+  (let [{:keys [dsid conn]} (create-duckdb-connection)]
+    (load-file-to-duckdb-connection conn reader-fn file-path)
     dsid))
 
 (defn- inspect-duckdb [dsid]
@@ -36,17 +43,16 @@
   (frame/dispatch (event/schema-tables-inspected {:dsid dsid :schema "main"})))
 
 (defn load-jsonl-to-duckdb [jsonl-path]
-  (load-file-to-duckdb jsonl-path "read_json_auto"))
+  (load-file-to-duckdb :read_json_auto jsonl-path))
 
 (defn load-csv-to-duckdb [csv-path]
-  (load-file-to-duckdb csv-path "read_csv_auto"))
+  (load-file-to-duckdb :read_csv_auto csv-path))
 
 (defn load-xlsx-to-duckdb [xlsx-path]
-  (let [{:keys [dsid conn]} (create-duckdb-connection)
-        table-name (derive-table-name xlsx-path)]
+  (let [{:keys [dsid conn]} (create-duckdb-connection)]
     (jdbc/execute! conn ["INSTALL excel"])
     (jdbc/execute! conn ["LOAD excel"])
-    (jdbc/execute! conn [(format "CREATE TABLE %s AS SELECT * FROM read_xlsx(?)" table-name) xlsx-path])
+    (load-file-to-duckdb-connection conn :read_xlsx xlsx-path)
     dsid))
 
 (defn -main [& args]
